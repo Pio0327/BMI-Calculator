@@ -966,6 +966,12 @@ export default function App() {
           setUsername={setUsername}
           password={password}
           setPassword={setPassword}
+          confirmPassword={confirmPassword}
+          setConfirmPassword={setConfirmPassword}
+          showPassword={showPassword}
+          setShowPassword={setShowPassword}
+          showConfirmPassword={showConfirmPassword}
+          setShowConfirmPassword={setShowConfirmPassword}
           isSignUp={isSignUp}
           setIsSignUp={setIsSignUp}
           isForgotPassword={isForgotPassword}
@@ -1595,6 +1601,12 @@ function LoginScreen({
   setUsername,
   password,
   setPassword,
+  confirmPassword,
+  setConfirmPassword,
+  showPassword,
+  setShowPassword,
+  showConfirmPassword,
+  setShowConfirmPassword,
   isSignUp,
   setIsSignUp,
   isForgotPassword,
