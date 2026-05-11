@@ -430,6 +430,7 @@ export default function App() {
   // User authentication state
   const [user, setUser] = useState(null);
   const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
@@ -486,14 +487,42 @@ export default function App() {
     return emailRegex.test(emailStr);
   };
 
+  // Helper function to validate username format (3+ alphanumeric chars, underscores, dots allowed)
+  const isValidUsername = (usernameStr) => {
+    const usernameRegex = /^[a-zA-Z0-9._]{3,20}$/;
+    return usernameRegex.test(usernameStr);
+  };
+
+  // Function to find email by username in Firestore
+  const findEmailByUsername = async (usernameToFind) => {
+    try {
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('username', '==', usernameToFind));
+      const querySnapshot = await getDocs(q);
+      
+      if (!querySnapshot.empty) {
+        return querySnapshot.docs[0].data().email;
+      }
+      return null;
+    } catch (err) {
+      console.log('Error finding username:', err);
+      return null;
+    }
+  };
+
   const handleSignUp = async () => {
-    if (!email || !password) {
-      setError('⚠️ Please enter email and password');
+    if (!email || !username || !password) {
+      setError('⚠️ Please enter email, username, and password');
       return;
     }
     
     if (!isValidEmail(email)) {
       setError('❌ Please enter a valid email address (e.g., user@example.com)');
+      return;
+    }
+
+    if (!isValidUsername(username)) {
+      setError('❌ Username must be 3-20 characters (letters, numbers, dots, underscores only)');
       return;
     }
     
@@ -506,9 +535,10 @@ export default function App() {
       setLoading(true);
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       
-      // Create user profile in Firestore
+      // Create user profile in Firestore with username
       await setDoc(doc(db, 'users', userCredential.user.uid), {
         email: email,
+        username: username,
         createdAt: new Date(),
         country: 'Philippines'
       });
@@ -516,6 +546,7 @@ export default function App() {
       setError('✅ Account created! You are logged in.');
       setTimeout(() => setError(''), 2000);
       setEmail('');
+      setUsername('');
       setPassword('');
     } catch (err) {
       setError('❌ ' + err.message);
@@ -526,18 +557,32 @@ export default function App() {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      setError('⚠️ Please enter email and password');
+      setError('⚠️ Please enter email/username and password');
       return;
     }
     
+    let loginEmail = email;
+    
+    // Check if input is a username or email
     if (!isValidEmail(email)) {
-      setError('❌ Please enter a valid email address (e.g., user@example.com)');
-      return;
+      // It's likely a username, try to find the email
+      if (!isValidUsername(email)) {
+        setError('❌ Invalid username or email format');
+        return;
+      }
+      
+      // Look up email by username
+      const foundEmail = await findEmailByUsername(email);
+      if (!foundEmail) {
+        setError('❌ Username not found');
+        return;
+      }
+      loginEmail = foundEmail;
     }
     
     try {
       setLoading(true);
-      await signInWithEmailAndPassword(auth, email, password);
+      await signInWithEmailAndPassword(auth, loginEmail, password);
       setError('✅ Login successful!');
       setTimeout(() => setError(''), 2000);
       setEmail('');
@@ -871,6 +916,8 @@ export default function App() {
         <LoginScreen
           email={email}
           setEmail={setEmail}
+          username={username}
+          setUsername={setUsername}
           password={password}
           setPassword={setPassword}
           isSignUp={isSignUp}
@@ -1498,6 +1545,8 @@ export default function App() {
 function LoginScreen({
   email,
   setEmail,
+  username,
+  setUsername,
   password,
   setPassword,
   isSignUp,
@@ -1540,20 +1589,39 @@ function LoginScreen({
                 </Text>
               </View>
 
-              {/* Email Input */}
+              {/* Email Input (or Email/Username Input for login) */}
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>📧 Email Address</Text>
+                <Text style={styles.inputLabel}>
+                  {isSignUp ? '📧 Email Address' : '📧 Email or Username'}
+                </Text>
                 <TextInput
                   style={styles.loginInput}
-                  placeholder="your@email.com"
+                  placeholder={isSignUp ? 'your@email.com' : 'email@example.com or username'}
                   placeholderTextColor="#A0AEC0"
-                  keyboardType="email-address"
+                  keyboardType={isSignUp ? 'email-address' : 'default'}
                   autoCapitalize="none"
                   value={email}
                   onChangeText={setEmail}
                   editable={!loading}
                 />
               </View>
+
+              {/* Username Input (only for signup) */}
+              {isSignUp && (
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>👤 Username</Text>
+                  <TextInput
+                    style={styles.loginInput}
+                    placeholder="myusername"
+                    placeholderTextColor="#A0AEC0"
+                    autoCapitalize="none"
+                    value={username}
+                    onChangeText={setUsername}
+                    editable={!loading}
+                  />
+                  <Text style={styles.usernameHint}>3-20 characters, letters, numbers, dots, underscores</Text>
+                </View>
+              )}
 
               {/* Password Input */}
               <View style={styles.inputGroup}>
@@ -1622,6 +1690,7 @@ function LoginScreen({
                     setIsSignUp(!isSignUp);
                     setError('');
                     setEmail('');
+                    setUsername('');
                     setPassword('');
                   }}
                 >
@@ -1653,11 +1722,12 @@ function LoginScreen({
               {/* Admin Account Setup */}
               <View style={styles.adminSetupContainer}>
                 <Text style={styles.adminSetupLabel}>⚙️ Admin Setup (First Time Only)</Text>
-                <Text style={styles.adminSetupHint}>Create admin account: admin@app.com / !admin</Text>
+                <Text style={styles.adminSetupHint}>Email: admin@app.com | Username: admin | Password: !admin</Text>
                 <TouchableOpacity
                   style={styles.adminSetupButton}
                   onPress={() => {
                     setEmail('admin@app.com');
+                    setUsername('admin');
                     setPassword('!admin');
                     setIsSignUp(true);
                   }}
@@ -2901,6 +2971,13 @@ const styles = StyleSheet.create({
     color: COLORS.label,
     fontSize: 14,
     fontWeight: '600',
+  },
+  usernameHint: {
+    fontSize: 11,
+    color: COLORS.label,
+    marginTop: 6,
+    fontWeight: '600',
+    fontStyle: 'italic',
   },
   loginErrorContainer: {
     backgroundColor: 'rgba(239, 68, 68, 0.15)',
