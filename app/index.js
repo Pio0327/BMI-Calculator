@@ -606,6 +606,7 @@ export default function App() {
   };
 
   // ========== CALCULATION FUNCTIONS ==========
+  const calculateBMI = (weightKg, heightCm) => {
     const heightM = heightCm / 100;
     return weightKg / (heightM * heightM);
   };
