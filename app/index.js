@@ -20,7 +20,8 @@ import {
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
   signOut,
-  onAuthStateChanged 
+  onAuthStateChanged,
+  sendPasswordResetEmail
 } from 'firebase/auth';
 import { 
   collection, 
@@ -431,6 +432,8 @@ export default function App() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
   const [loading, setLoading] = useState(true);
 
   // Calculator state
@@ -529,6 +532,27 @@ export default function App() {
       setWeeklyData({});
       setError('✅ Logged out successfully');
       setTimeout(() => setError(''), 2000);
+    } catch (err) {
+      setError('❌ ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!forgotEmail) {
+      setError('⚠️ Please enter your email');
+      return;
+    }
+    try {
+      setLoading(true);
+      await sendPasswordResetEmail(auth, forgotEmail);
+      setError('✅ Password reset email sent! Check your inbox.');
+      setTimeout(() => {
+        setError('');
+        setIsForgotPassword(false);
+        setForgotEmail('');
+      }, 3000);
     } catch (err) {
       setError('❌ ' + err.message);
     } finally {
@@ -811,70 +835,36 @@ export default function App() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: COLORS.background }]}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>💪 BMI & Macro</Text>
-          <Text style={styles.subtitle}>Calculate your perfect nutrition plan</Text>
-        </View>
-
-        {/* Show Login Screen if not logged in */}
-        {!user ? (
-          <View style={[styles.card, { marginHorizontal: 16 }]}>
-            <Text style={styles.cardTitle}>🔐 {isSignUp ? 'Create Account' : 'Welcome Back'}</Text>
-            
-            {/* Email Input */}
-            <TextInput
-              style={styles.input}
-              placeholder="Enter your email"
-              placeholderTextColor={COLORS.textSecondary}
-              keyboardType="email-address"
-              value={email}
-              onChangeText={setEmail}
-              editable={!loading}
-            />
-            
-            {/* Password Input */}
-            <TextInput
-              style={styles.input}
-              placeholder="Enter password"
-              placeholderTextColor={COLORS.textSecondary}
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-              editable={!loading}
-            />
-            
-            {/* Error/Success Message */}
-            {error && (
-              <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>{error}</Text>
-              </View>
-            )}
-            
-            {/* Auth Buttons */}
-            <TouchableOpacity
-              style={[styles.button, { backgroundColor: COLORS.accent, marginTop: 12 }]}
-              onPress={isSignUp ? handleSignUp : handleLogin}
-              disabled={loading}
-            >
-              <Text style={styles.buttonText}>
-                {loading ? '⏳ Loading...' : (isSignUp ? '📝 Sign Up' : '✅ Login')}
-              </Text>
-            </TouchableOpacity>
-            
-            {/* Toggle Sign Up / Login */}
-            <TouchableOpacity onPress={() => { setIsSignUp(!isSignUp); setError(''); }}>
-              <Text style={styles.toggleText}>
-                {isSignUp ? '✅ Already have an account? Login' : '📝 Need an account? Sign Up'}
-              </Text>
-            </TouchableOpacity>
-            
-            <Text style={styles.helpText}>
-              💡 Example: test@example.com | password123
-            </Text>
+      {/* Show full-screen login page if not authenticated */}
+      {!user ? (
+        <LoginScreen
+          email={email}
+          setEmail={setEmail}
+          password={password}
+          setPassword={setPassword}
+          isSignUp={isSignUp}
+          setIsSignUp={setIsSignUp}
+          isForgotPassword={isForgotPassword}
+          setIsForgotPassword={setIsForgotPassword}
+          forgotEmail={forgotEmail}
+          setForgotEmail={setForgotEmail}
+          loading={loading}
+          error={error}
+          setError={setError}
+          onSignUp={handleSignUp}
+          onLogin={handleLogin}
+          onForgotPassword={handleForgotPassword}
+        />
+      ) : (
+        /* Main App - Only shows when user is logged in */
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.title}>💪 BMI & Macro</Text>
+            <Text style={styles.subtitle}>Calculate your perfect nutrition plan</Text>
           </View>
-        ) : (
+
+          {/* User Profile Card */}
           <View style={[styles.card, { marginHorizontal: 16, marginBottom: 12 }]}>
             <View style={styles.userCardHeader}>
               <Text style={styles.welcomeText}>👋 Welcome, {user.email}!</Text>
@@ -892,10 +882,9 @@ export default function App() {
               </View>
             )}
           </View>
-        )}
 
-        {/* Input Card */}
-        <View style={styles.card}>
+          {/* Input Card */}
+          <View style={styles.card}>
           <Text style={styles.sectionTitle}>Your Metrics</Text>
 
           {error ? (
@@ -1454,7 +1443,220 @@ export default function App() {
 
         <View style={{ height: 30 }} />
       </ScrollView>
+      )}
     </SafeAreaView>
+  );
+}
+
+// ========== LOGIN SCREEN COMPONENT ==========
+function LoginScreen({
+  email,
+  setEmail,
+  password,
+  setPassword,
+  isSignUp,
+  setIsSignUp,
+  isForgotPassword,
+  setIsForgotPassword,
+  forgotEmail,
+  setForgotEmail,
+  loading,
+  error,
+  setError,
+  onSignUp,
+  onLogin,
+  onForgotPassword,
+}) {
+  return (
+    <ScrollView contentContainerStyle={styles.loginContainer} showsVerticalScrollIndicator={false}>
+      {/* Gradient Background Container */}
+      <View style={styles.loginGradientBg}>
+        {/* Logo/Branding */}
+        <View style={styles.loginLogoSection}>
+          <Text style={styles.loginLogo}>💪</Text>
+          <Text style={styles.loginAppName}>BMI & Macro</Text>
+          <Text style={styles.loginAppSubtitle}>Your Personal Nutrition Coach</Text>
+        </View>
+
+        {/* Main Login Card */}
+        <View style={styles.loginCard}>
+          {!isForgotPassword ? (
+            <>
+              {/* Welcome Message */}
+              <View style={styles.welcomeSection}>
+                <Text style={styles.loginTitle}>
+                  {isSignUp ? '🎯 Join Our Community' : '👋 Welcome Back'}
+                </Text>
+                <Text style={styles.loginDescription}>
+                  {isSignUp
+                    ? 'Create an account to track your nutrition and fitness progress across devices.'
+                    : 'Sign in to continue your fitness journey and access your saved data.'}
+                </Text>
+              </View>
+
+              {/* Email Input */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>📧 Email Address</Text>
+                <TextInput
+                  style={styles.loginInput}
+                  placeholder="your@email.com"
+                  placeholderTextColor="#A0AEC0"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  value={email}
+                  onChangeText={setEmail}
+                  editable={!loading}
+                />
+              </View>
+
+              {/* Password Input */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>🔒 Password</Text>
+                <TextInput
+                  style={styles.loginInput}
+                  placeholder="Enter your password"
+                  placeholderTextColor="#A0AEC0"
+                  secureTextEntry
+                  value={password}
+                  onChangeText={setPassword}
+                  editable={!loading}
+                />
+              </View>
+
+              {/* Error/Success Message */}
+              {error && (
+                <View style={styles.loginErrorContainer}>
+                  <Text style={styles.loginErrorText}>{error}</Text>
+                </View>
+              )}
+
+              {/* Main Auth Button */}
+              <TouchableOpacity
+                style={[styles.loginAuthButton, loading && styles.loginAuthButtonDisabled]}
+                onPress={isSignUp ? onSignUp : onLogin}
+                disabled={loading}
+              >
+                <Text style={styles.loginAuthButtonText}>
+                  {loading ? '⏳ Please wait...' : (isSignUp ? '✨ Create Account' : '🚀 Sign In')}
+                </Text>
+              </TouchableOpacity>
+
+              {/* Forgot Password Link (only on login mode) */}
+              {!isSignUp && (
+                <TouchableOpacity onPress={() => setIsForgotPassword(true)}>
+                  <Text style={styles.forgotPasswordLink}>🔑 Forgot your password?</Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Social Login Buttons */}
+              <View style={styles.dividerContainer}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>Or continue with</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              <View style={styles.socialButtonsRow}>
+                <TouchableOpacity style={styles.socialButton} disabled={loading}>
+                  <Text style={styles.socialButtonEmoji}>🔴</Text>
+                  <Text style={styles.socialButtonText}>Google</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.socialButton} disabled={loading}>
+                  <Text style={styles.socialButtonEmoji}>🍎</Text>
+                  <Text style={styles.socialButtonText}>Apple</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Toggle Sign Up / Login */}
+              <View style={styles.toggleContainer}>
+                <Text style={styles.toggleQuestion}>
+                  {isSignUp ? '✅ Already have an account? ' : "📝 Don't have an account? "}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    setIsSignUp(!isSignUp);
+                    setError('');
+                    setEmail('');
+                    setPassword('');
+                  }}
+                >
+                  <Text style={styles.toggleLink}>
+                    {isSignUp ? 'Sign In' : 'Sign Up'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Sign Up Benefits */}
+              {isSignUp && (
+                <View style={styles.benefitsContainer}>
+                  <Text style={styles.benefitsTitle}>Why Create an Account?</Text>
+                  <View style={styles.benefitItem}>
+                    <Text style={styles.benefitIcon}>☁️</Text>
+                    <Text style={styles.benefitText}>Cloud Sync - Access your data anywhere</Text>
+                  </View>
+                  <View style={styles.benefitItem}>
+                    <Text style={styles.benefitIcon}>📊</Text>
+                    <Text style={styles.benefitText}>Track Progress - Weekly reports</Text>
+                  </View>
+                  <View style={styles.benefitItem}>
+                    <Text style={styles.benefitIcon}>🔄</Text>
+                    <Text style={styles.benefitText}>Multi-Device - Use on phone & web</Text>
+                  </View>
+                </View>
+              )}
+            </>
+          ) : (
+            /* Forgot Password Screen */
+            <>
+              <Text style={styles.loginTitle}>🔐 Reset Password</Text>
+              <Text style={styles.loginDescription}>
+                Enter your email address and we'll send you a link to reset your password.
+              </Text>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>📧 Email Address</Text>
+                <TextInput
+                  style={styles.loginInput}
+                  placeholder="your@email.com"
+                  placeholderTextColor="#A0AEC0"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  value={forgotEmail}
+                  onChangeText={setForgotEmail}
+                  editable={!loading}
+                />
+              </View>
+
+              {error && (
+                <View style={styles.loginErrorContainer}>
+                  <Text style={styles.loginErrorText}>{error}</Text>
+                </View>
+              )}
+
+              <TouchableOpacity
+                style={[styles.loginAuthButton, loading && styles.loginAuthButtonDisabled]}
+                onPress={onForgotPassword}
+                disabled={loading}
+              >
+                <Text style={styles.loginAuthButtonText}>
+                  {loading ? '⏳ Sending email...' : '📧 Send Reset Link'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={() => { setIsForgotPassword(false); setError(''); }}>
+                <Text style={styles.backLink}>← Back to Login</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+
+        {/* Footer */}
+        <View style={styles.loginFooter}>
+          <Text style={styles.footerText}>
+            By signing up, you agree to our Terms & Privacy Policy
+          </Text>
+        </View>
+      </View>
+    </ScrollView>
   );
 }
 
@@ -2549,6 +2751,251 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     color: '#FCA5A5',
+  },
+
+  // ========== FULL SCREEN LOGIN PAGE STYLES ==========
+  loginContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 40,
+  },
+  loginGradientBg: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  loginLogoSection: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  loginLogo: {
+    fontSize: 80,
+    marginBottom: 12,
+  },
+  loginAppName: {
+    fontSize: 42,
+    fontWeight: '900',
+    color: COLORS.accent,
+    letterSpacing: -1,
+    marginBottom: 8,
+  },
+  loginAppSubtitle: {
+    fontSize: 16,
+    color: COLORS.label,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  loginCard: {
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: 'rgba(15, 20, 25, 0.95)',
+    borderRadius: 24,
+    padding: 28,
+    borderWidth: 2,
+    borderColor: 'rgba(0, 212, 255, 0.2)',
+    ...Platform.select({
+      native: {
+        shadowColor: '#00D4FF',
+        shadowOpacity: 0.3,
+        shadowRadius: 30,
+        elevation: 15,
+      },
+    }),
+  },
+  welcomeSection: {
+    marginBottom: 28,
+  },
+  loginTitle: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: COLORS.accent,
+    marginBottom: 10,
+    letterSpacing: -0.5,
+  },
+  loginDescription: {
+    fontSize: 14,
+    color: COLORS.label,
+    lineHeight: 21,
+    fontWeight: '600',
+  },
+  inputGroup: {
+    marginBottom: 18,
+  },
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: COLORS.label,
+    marginBottom: 8,
+    letterSpacing: 0.3,
+  },
+  loginInput: {
+    backgroundColor: 'rgba(6, 7, 12, 0.6)',
+    borderWidth: 2,
+    borderColor: 'rgba(0, 212, 255, 0.25)',
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    color: COLORS.label,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  loginErrorContainer: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 18,
+    borderWidth: 2,
+    borderColor: 'rgba(239, 68, 68, 0.4)',
+  },
+  loginErrorText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#FCA5A5',
+    textAlign: 'center',
+    letterSpacing: 0.2,
+  },
+  loginAuthButton: {
+    backgroundColor: COLORS.accent,
+    borderRadius: 14,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+    borderWidth: 2,
+    borderColor: COLORS.accent,
+    ...Platform.select({
+      native: {
+        shadowColor: '#00D4FF',
+        shadowOpacity: 0.3,
+        shadowRadius: 15,
+        elevation: 10,
+      },
+    }),
+  },
+  loginAuthButtonDisabled: {
+    opacity: 0.6,
+  },
+  loginAuthButtonText: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#06070C',
+    letterSpacing: 0.4,
+  },
+  forgotPasswordLink: {
+    fontSize: 13,
+    color: COLORS.accent,
+    textAlign: 'center',
+    fontWeight: '700',
+    textDecorationLine: 'underline',
+    marginBottom: 24,
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(0, 212, 255, 0.1)',
+  },
+  dividerText: {
+    fontSize: 12,
+    color: COLORS.label,
+    marginHorizontal: 12,
+    fontWeight: '700',
+  },
+  socialButtonsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  socialButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(22, 29, 41, 0.6)',
+    borderRadius: 12,
+    paddingVertical: 12,
+    borderWidth: 2,
+    borderColor: 'rgba(0, 212, 255, 0.15)',
+  },
+  socialButtonEmoji: {
+    fontSize: 16,
+    marginRight: 6,
+  },
+  socialButtonText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: COLORS.label,
+  },
+  toggleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    flexWrap: 'wrap',
+  },
+  toggleQuestion: {
+    fontSize: 13,
+    color: COLORS.label,
+    fontWeight: '600',
+  },
+  toggleLink: {
+    fontSize: 13,
+    color: COLORS.accent,
+    fontWeight: '900',
+    textDecorationLine: 'underline',
+  },
+  benefitsContainer: {
+    marginTop: 24,
+    paddingTop: 24,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0, 212, 255, 0.1)',
+  },
+  benefitsTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: COLORS.accentSecondary,
+    marginBottom: 14,
+    letterSpacing: 0.3,
+  },
+  benefitItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  benefitIcon: {
+    fontSize: 18,
+    marginRight: 10,
+  },
+  benefitText: {
+    fontSize: 12,
+    color: COLORS.label,
+    fontWeight: '600',
+    flex: 1,
+  },
+  backLink: {
+    fontSize: 13,
+    color: COLORS.accent,
+    textAlign: 'center',
+    fontWeight: '700',
+    textDecorationLine: 'underline',
+  },
+  loginFooter: {
+    marginTop: 32,
+    maxWidth: 420,
+    alignItems: 'center',
+  },
+  footerText: {
+    fontSize: 11,
+    color: COLORS.label,
+    textAlign: 'center',
+    fontWeight: '600',
+    fontStyle: 'italic',
   },
 });
 
