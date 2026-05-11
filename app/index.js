@@ -196,40 +196,215 @@ const WorkoutNutrition = {
   },
 };
 
-const CommonFoods = {
-  breakfast: [
-    { name: 'Pandesal with Butter', calories: 180, protein: 5, carbs: 24, fat: 7 },
-    { name: 'Sinangag (Garlic Rice)', calories: 250, protein: 4, carbs: 35, fat: 10 },
-    { name: 'Tapa (80g)', calories: 200, protein: 26, carbs: 2, fat: 10 },
-    { name: 'Balut (1 egg)', calories: 180, protein: 16, carbs: 1, fat: 13 },
-    { name: 'Lugaw (1 bowl)', calories: 150, protein: 6, carbs: 28, fat: 2 },
-    { name: 'Tuyo (Dried Fish, 2 pcs)', calories: 120, protein: 18, carbs: 0, fat: 5 },
-  ],
-  lunch: [
-    { name: 'Chicken Adobo (150g)', calories: 280, protein: 28, carbs: 4, fat: 15 },
-    { name: 'Jasmine Rice (1 cup)', calories: 205, protein: 4, carbs: 45, fat: 0 },
-    { name: 'Sinigang (250g)', calories: 180, protein: 18, carbs: 12, fat: 7 },
-    { name: 'Kare-kare (200g)', calories: 320, protein: 25, carbs: 15, fat: 18 },
-    { name: 'Tinola (250g)', calories: 150, protein: 16, carbs: 8, fat: 5 },
-    { name: 'Bangus (Fried, 100g)', calories: 200, protein: 20, carbs: 3, fat: 12 },
-  ],
-  snack: [
-    { name: 'Lumpia (3 pieces)', calories: 200, protein: 8, carbs: 18, fat: 10 },
-    { name: 'Bibingka (1 piece)', calories: 180, protein: 3, carbs: 25, fat: 8 },
-    { name: 'Chicharon (1 oz)', calories: 180, protein: 12, carbs: 0, fat: 15 },
-    { name: 'Ube Halaya (2 tbsp)', calories: 150, protein: 2, carbs: 28, fat: 3 },
-    { name: 'Empanada (1 piece)', calories: 220, protein: 6, carbs: 22, fat: 12 },
-    { name: 'Turon (1 piece)', calories: 140, protein: 1, carbs: 24, fat: 4 },
-  ],
-  dinner: [
-    { name: 'Lapu-lapu (Steamed, 120g)', calories: 130, protein: 25, carbs: 0, fat: 3 },
-    { name: 'Fried Chicken (100g)', calories: 250, protein: 22, carbs: 6, fat: 15 },
-    { name: 'Pinakbet (250g)', calories: 140, protein: 8, carbs: 18, fat: 5 },
-    { name: 'Pork Adobo (150g)', calories: 300, protein: 26, carbs: 3, fat: 20 },
-    { name: 'Sinigang Pork (200g)', calories: 220, protein: 20, carbs: 10, fat: 12 },
-    { name: 'Caldereta (250g)', calories: 280, protein: 24, carbs: 12, fat: 14 },
-  ],
+const FoodsByCountry = {
+  Philippines: {
+    breakfast: [
+      { name: 'Pandesal with Butter', calories: 180, protein: 5, carbs: 24, fat: 7 },
+      { name: 'Sinangag (Garlic Rice)', calories: 250, protein: 4, carbs: 35, fat: 10 },
+      { name: 'Tapa (80g)', calories: 200, protein: 26, carbs: 2, fat: 10 },
+      { name: 'Balut (1 egg)', calories: 180, protein: 16, carbs: 1, fat: 13 },
+      { name: 'Lugaw (1 bowl)', calories: 150, protein: 6, carbs: 28, fat: 2 },
+      { name: 'Tuyo (Dried Fish, 2 pcs)', calories: 120, protein: 18, carbs: 0, fat: 5 },
+    ],
+    lunch: [
+      { name: 'Chicken Adobo (150g)', calories: 280, protein: 28, carbs: 4, fat: 15 },
+      { name: 'Jasmine Rice (1 cup)', calories: 205, protein: 4, carbs: 45, fat: 0 },
+      { name: 'Sinigang (250g)', calories: 180, protein: 18, carbs: 12, fat: 7 },
+      { name: 'Kare-kare (200g)', calories: 320, protein: 25, carbs: 15, fat: 18 },
+      { name: 'Tinola (250g)', calories: 150, protein: 16, carbs: 8, fat: 5 },
+      { name: 'Bangus (Fried, 100g)', calories: 200, protein: 20, carbs: 3, fat: 12 },
+    ],
+    snack: [
+      { name: 'Lumpia (3 pieces)', calories: 200, protein: 8, carbs: 18, fat: 10 },
+      { name: 'Bibingka (1 piece)', calories: 180, protein: 3, carbs: 25, fat: 8 },
+      { name: 'Chicharon (1 oz)', calories: 180, protein: 12, carbs: 0, fat: 15 },
+      { name: 'Ube Halaya (2 tbsp)', calories: 150, protein: 2, carbs: 28, fat: 3 },
+      { name: 'Empanada (1 piece)', calories: 220, protein: 6, carbs: 22, fat: 12 },
+      { name: 'Turon (1 piece)', calories: 140, protein: 1, carbs: 24, fat: 4 },
+    ],
+    dinner: [
+      { name: 'Lapu-lapu (Steamed, 120g)', calories: 130, protein: 25, carbs: 0, fat: 3 },
+      { name: 'Fried Chicken (100g)', calories: 250, protein: 22, carbs: 6, fat: 15 },
+      { name: 'Pinakbet (250g)', calories: 140, protein: 8, carbs: 18, fat: 5 },
+      { name: 'Pork Adobo (150g)', calories: 300, protein: 26, carbs: 3, fat: 20 },
+      { name: 'Sinigang Pork (200g)', calories: 220, protein: 20, carbs: 10, fat: 12 },
+      { name: 'Caldereta (250g)', calories: 280, protein: 24, carbs: 12, fat: 14 },
+    ],
+  },
+  USA: {
+    breakfast: [
+      { name: 'Scrambled Eggs (2)', calories: 155, protein: 13, carbs: 1, fat: 11 },
+      { name: 'Oatmeal (1 cup)', calories: 150, protein: 5, carbs: 27, fat: 3 },
+      { name: 'Banana', calories: 105, protein: 1, carbs: 27, fat: 0 },
+      { name: 'Greek Yogurt (1 cup)', calories: 100, protein: 17, carbs: 7, fat: 0 },
+      { name: 'Whole Wheat Toast', calories: 80, protein: 4, carbs: 14, fat: 1 },
+      { name: 'Granola (1/2 cup)', calories: 200, protein: 5, carbs: 30, fat: 8 },
+    ],
+    lunch: [
+      { name: 'Chicken Breast (100g)', calories: 165, protein: 31, carbs: 0, fat: 4 },
+      { name: 'Brown Rice (1 cup)', calories: 215, protein: 5, carbs: 45, fat: 2 },
+      { name: 'Salmon (100g)', calories: 206, protein: 22, carbs: 0, fat: 13 },
+      { name: 'Broccoli (1 cup)', calories: 55, protein: 4, carbs: 11, fat: 1 },
+      { name: 'Sweet Potato (1)', calories: 103, protein: 2, carbs: 24, fat: 0 },
+      { name: 'Beef Steak (100g)', calories: 250, protein: 26, carbs: 0, fat: 15 },
+    ],
+    snack: [
+      { name: 'Apple', calories: 95, protein: 0, carbs: 25, fat: 0 },
+      { name: 'Almonds (1 oz)', calories: 164, protein: 6, carbs: 6, fat: 14 },
+      { name: 'Protein Bar', calories: 200, protein: 20, carbs: 15, fat: 5 },
+      { name: 'Peanut Butter (2 tbsp)', calories: 188, protein: 8, carbs: 7, fat: 16 },
+      { name: 'Mixed Berries (1 cup)', calories: 85, protein: 1, carbs: 21, fat: 0 },
+      { name: 'Cheese (1 oz)', calories: 113, protein: 7, carbs: 0, fat: 9 },
+    ],
+    dinner: [
+      { name: 'Grilled Chicken (150g)', calories: 248, protein: 47, carbs: 0, fat: 5 },
+      { name: 'Pasta (1 cup)', calories: 220, protein: 8, carbs: 43, fat: 1 },
+      { name: 'Turkey (100g)', calories: 135, protein: 29, carbs: 0, fat: 1 },
+      { name: 'Baked Cod (150g)', calories: 120, protein: 26, carbs: 0, fat: 1 },
+      { name: 'Quinoa (1 cup)', calories: 222, protein: 8, carbs: 39, fat: 4 },
+      { name: 'Lean Ground Beef (100g)', calories: 180, protein: 27, carbs: 0, fat: 8 },
+    ],
+  },
+  Japan: {
+    breakfast: [
+      { name: 'Tamagoyaki (2 eggs)', calories: 180, protein: 14, carbs: 2, fat: 13 },
+      { name: 'White Rice (1 bowl)', calories: 200, protein: 4, carbs: 45, fat: 0 },
+      { name: 'Nori (Seaweed, 1 sheet)', calories: 5, protein: 1, carbs: 1, fat: 0 },
+      { name: 'Umeboshi (Pickled Plum)', calories: 15, protein: 0, carbs: 3, fat: 0 },
+      { name: 'Miso Soup (1 bowl)', calories: 40, protein: 3, carbs: 4, fat: 1 },
+      { name: 'Onigiri (Rice Ball)', calories: 150, protein: 3, carbs: 34, fat: 1 },
+    ],
+    lunch: [
+      { name: 'Teriyaki Chicken (120g)', calories: 280, protein: 25, carbs: 12, fat: 12 },
+      { name: 'Sushi Rice (1 cup)', calories: 200, protein: 4, carbs: 44, fat: 0 },
+      { name: 'Salmon Fillet (100g)', calories: 206, protein: 22, carbs: 0, fat: 13 },
+      { name: 'Edamame (1 cup)', calories: 190, protein: 19, carbs: 14, fat: 8 },
+      { name: 'Tempura (3 pieces)', calories: 220, protein: 8, carbs: 18, fat: 12 },
+      { name: 'Tonkatsu (Breaded Pork, 100g)', calories: 280, protein: 20, carbs: 12, fat: 16 },
+    ],
+    snack: [
+      { name: 'Dango (2 pieces)', calories: 100, protein: 2, carbs: 22, fat: 1 },
+      { name: 'Green Tea Mochi', calories: 90, protein: 2, carbs: 20, fat: 1 },
+      { name: 'Wasabi Peas (1 oz)', calories: 140, protein: 6, carbs: 10, fat: 8 },
+      { name: 'Dried Seaweed Snack', calories: 30, protein: 2, carbs: 4, fat: 0 },
+      { name: 'Kakigori (Shaved Ice)', calories: 80, protein: 0, carbs: 20, fat: 0 },
+      { name: 'Persimmon', calories: 80, protein: 0, carbs: 21, fat: 0 },
+    ],
+    dinner: [
+      { name: 'Ramen (1 bowl)', calories: 350, protein: 12, carbs: 52, fat: 12 },
+      { name: 'Sukiyaki (200g)', calories: 320, protein: 24, carbs: 16, fat: 18 },
+      { name: 'Gyudon (Beef Bowl, 150g)', calories: 380, protein: 22, carbs: 42, fat: 14 },
+      { name: 'Katsudon (Pork Cutlet Bowl)', calories: 420, protein: 24, carbs: 48, fat: 15 },
+      { name: 'Tuna Sashimi (100g)', calories: 120, protein: 26, carbs: 0, fat: 1 },
+      { name: 'Okonomiyaki (Savory Pancake)', calories: 300, protein: 12, carbs: 28, fat: 14 },
+    ],
+  },
+  India: {
+    breakfast: [
+      { name: 'Idli (2 pieces)', calories: 120, protein: 4, carbs: 26, fat: 1 },
+      { name: 'Dosa (1 piece)', calories: 220, protein: 8, carbs: 28, fat: 8 },
+      { name: 'Paratha (2 pieces)', calories: 300, protein: 6, carbs: 32, fat: 16 },
+      { name: 'Poha (1 bowl)', calories: 150, protein: 3, carbs: 32, fat: 2 },
+      { name: 'Chapati (2 pieces)', calories: 180, protein: 6, carbs: 28, fat: 4 },
+      { name: 'Halwa (2 tbsp)', calories: 150, protein: 2, carbs: 20, fat: 7 },
+    ],
+    lunch: [
+      { name: 'Chicken Tikka Masala (200g)', calories: 350, protein: 28, carbs: 12, fat: 20 },
+      { name: 'Basmati Rice (1 cup)', calories: 210, protein: 4, carbs: 46, fat: 0 },
+      { name: 'Paneer Curry (150g)', calories: 280, protein: 18, carbs: 8, fat: 20 },
+      { name: 'Dal (Lentils, 1 cup)', calories: 230, protein: 18, carbs: 40, fat: 2 },
+      { name: 'Biryani (1 cup)', calories: 320, protein: 12, carbs: 42, fat: 10 },
+      { name: 'Tandoori Chicken (100g)', calories: 180, protein: 26, carbs: 2, fat: 7 },
+    ],
+    snack: [
+      { name: 'Samosa (2 pieces)', calories: 260, protein: 6, carbs: 28, fat: 14 },
+      { name: 'Pakora (4 pieces)', calories: 200, protein: 6, carbs: 18, fat: 10 },
+      { name: 'Bhelpuri (1 cup)', calories: 180, protein: 5, carbs: 28, fat: 6 },
+      { name: 'Chakli (5 pieces)', calories: 150, protein: 3, carbs: 20, fat: 7 },
+      { name: 'Laddu (1 piece)', calories: 140, protein: 3, carbs: 18, fat: 6 },
+      { name: 'Jaggery (1 oz)', calories: 100, protein: 0, carbs: 26, fat: 0 },
+    ],
+    dinner: [
+      { name: 'Butter Chicken (200g)', calories: 380, protein: 26, carbs: 10, fat: 26 },
+      { name: 'Korma (200g)', calories: 340, protein: 22, carbs: 12, fat: 22 },
+      { name: 'Rogan Josh (200g)', calories: 320, protein: 24, carbs: 8, fat: 18 },
+      { name: 'Sambar (1 cup)', calories: 140, protein: 6, carbs: 20, fat: 3 },
+      { name: 'Chole Bhature (1 serving)', calories: 480, protein: 16, carbs: 68, fat: 14 },
+      { name: 'Fish Curry (150g)', calories: 240, protein: 22, carbs: 6, fat: 13 },
+    ],
+  },
+  Mexico: {
+    breakfast: [
+      { name: 'Huevos Rancheros (1 serving)', calories: 280, protein: 14, carbs: 20, fat: 15 },
+      { name: 'Chilaquiles (1 cup)', calories: 320, protein: 12, carbs: 28, fat: 16 },
+      { name: 'Tamale (2 pieces)', calories: 220, protein: 6, carbs: 28, fat: 10 },
+      { name: 'Tortilla (2 pieces)', calories: 140, protein: 4, carbs: 24, fat: 2 },
+      { name: 'Chorizo (50g)', calories: 170, protein: 10, carbs: 2, fat: 13 },
+      { name: 'Quesadilla (1 piece)', calories: 280, protein: 12, carbs: 24, fat: 14 },
+    ],
+    lunch: [
+      { name: 'Chicken Burrito (300g)', calories: 420, protein: 28, carbs: 42, fat: 14 },
+      { name: 'Carne Asada (120g)', calories: 280, protein: 32, carbs: 0, fat: 15 },
+      { name: 'Chile Relleno (1 serving)', calories: 340, protein: 16, carbs: 18, fat: 20 },
+      { name: 'Enchiladas (2 pieces)', calories: 420, protein: 18, carbs: 38, fat: 20 },
+      { name: 'Taco (2 tacos)', calories: 280, protein: 16, carbs: 24, fat: 12 },
+      { name: 'Pozole (1 bowl)', calories: 240, protein: 18, carbs: 24, fat: 8 },
+    ],
+    snack: [
+      { name: 'Churro (2 pieces)', calories: 200, protein: 2, carbs: 28, fat: 9 },
+      { name: 'Elote (Corn on cob)', calories: 220, protein: 7, carbs: 26, fat: 10 },
+      { name: 'Guacamole (1/4 cup)', calories: 90, protein: 1, carbs: 4, fat: 8 },
+      { name: 'Pico de Gallo (1/2 cup)', calories: 20, protein: 1, carbs: 4, fat: 0 },
+      { name: 'Churros with Chocolate', calories: 240, protein: 4, carbs: 32, fat: 10 },
+      { name: 'Flan (1 piece)', calories: 160, protein: 4, carbs: 22, fat: 6 },
+    ],
+    dinner: [
+      { name: 'Mole Chicken (200g)', calories: 380, protein: 28, carbs: 22, fat: 18 },
+      { name: 'Chiles en Nogada (1 serving)', calories: 320, protein: 12, carbs: 28, fat: 16 },
+      { name: 'Tamales con Rajas (2 pieces)', calories: 280, protein: 8, carbs: 32, fat: 12 },
+      { name: 'Cochinita Pibil (200g)', calories: 320, protein: 32, carbs: 4, fat: 16 },
+      { name: 'Fajitas (1 serving)', calories: 360, protein: 28, carbs: 24, fat: 16 },
+      { name: 'Chiles Rellenos (2 pieces)', calories: 380, protein: 16, carbs: 22, fat: 24 },
+    ],
+  },
+  Italy: {
+    breakfast: [
+      { name: 'Cappuccino with Cornetto', calories: 180, protein: 6, carbs: 24, fat: 6 },
+      { name: 'Focaccia (1 slice)', calories: 200, protein: 6, carbs: 28, fat: 6 },
+      { name: 'Panettone (1 slice)', calories: 220, protein: 4, carbs: 36, fat: 6 },
+      { name: 'Espresso with Pastry', calories: 150, protein: 3, carbs: 20, fat: 5 },
+      { name: 'Biscotti (2 pieces)', calories: 140, protein: 4, carbs: 20, fat: 4 },
+      { name: 'Bombolone (1 piece)', calories: 180, protein: 3, carbs: 24, fat: 8 },
+    ],
+    lunch: [
+      { name: 'Pasta Carbonara (1 cup)', calories: 420, protein: 18, carbs: 42, fat: 18 },
+      { name: 'Risotto (1 cup)', calories: 380, protein: 12, carbs: 48, fat: 14 },
+      { name: 'Osso Buco (120g)', calories: 280, protein: 28, carbs: 6, fat: 14 },
+      { name: 'Lasagna (1 slice)', calories: 380, protein: 20, carbs: 32, fat: 16 },
+      { name: 'Pizza Margherita (2 slices)', calories: 420, protein: 18, carbs: 48, fat: 14 },
+      { name: 'Spaghetti Bolognese (1 cup)', calories: 380, protein: 16, carbs: 44, fat: 14 },
+    ],
+    snack: [
+      { name: 'Bruschetta (2 pieces)', calories: 120, protein: 4, carbs: 14, fat: 5 },
+      { name: 'Cantuccini (3 pieces)', calories: 160, protein: 4, carbs: 20, fat: 6 },
+      { name: 'Tiramisu (1 piece)', calories: 280, protein: 6, carbs: 28, fat: 14 },
+      { name: 'Gelato (1 scoop)', calories: 140, protein: 3, carbs: 18, fat: 6 },
+      { name: 'Panini (1 piece)', calories: 280, protein: 14, carbs: 28, fat: 12 },
+      { name: 'Amaretti (2 pieces)', calories: 100, protein: 3, carbs: 14, fat: 3 },
+    ],
+    dinner: [
+      { name: 'Veal Piccata (120g)', calories: 260, protein: 32, carbs: 4, fat: 12 },
+      { name: 'Seafood Pasta (1 cup)', calories: 380, protein: 24, carbs: 40, fat: 12 },
+      { name: 'Eggplant Parmesan (200g)', calories: 320, protein: 14, carbs: 24, fat: 18 },
+      { name: 'Minestrone (1 bowl)', calories: 160, protein: 8, carbs: 24, fat: 3 },
+      { name: 'Polenta (1 cup)', calories: 200, protein: 6, carbs: 40, fat: 2 },
+      { name: 'Saltimbocca (120g)', calories: 280, protein: 28, carbs: 6, fat: 14 },
+    ],
+  },
 };
+
+// Use the current country's foods
+const CommonFoods = FoodsByCountry['Philippines'];
 
 export default function App() {
   const [age, setAge] = useState('');
@@ -250,6 +425,7 @@ export default function App() {
   const [customFoodCalories, setCustomFoodCalories] = useState('');
   const [showFoodPicker, setShowFoodPicker] = useState(false);
   const [mealType, setMealType] = useState('breakfast');
+  const [country, setCountry] = useState('Philippines');
   const [weeklyData, setWeeklyData] = useState({});
   const getTodayDate = () => new Date().toISOString().split('T')[0];
 
@@ -628,6 +804,21 @@ export default function App() {
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>📅 Daily Tracker</Text>
 
+          <View style={styles.countryContainer}>
+            <Text style={styles.label}>🌍 Country/Cuisine</Text>
+            <View style={styles.countryGrid}>
+              {Object.keys(FoodsByCountry).map((c) => (
+                <TouchableOpacity
+                  key={c}
+                  style={[styles.countryButton, country === c && { backgroundColor: COLORS.accent, borderColor: COLORS.accent }]}
+                  onPress={() => setCountry(c)}
+                >
+                  <Text style={[styles.countryButtonText, country === c && { color: '#06070C', fontWeight: '900' }]}>{c}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
           <View style={styles.trackerControls}>
             <TouchableOpacity
               style={[styles.mealTypeButton, mealType === 'breakfast' && { backgroundColor: COLORS.accent }]}
@@ -665,7 +856,7 @@ export default function App() {
           {showFoodPicker && (
             <View style={styles.foodPickerContainer}>
               <ScrollView style={styles.foodList} horizontal={false} nestedScrollEnabled>
-                {CommonFoods[mealType].map((food) => (
+                {FoodsByCountry[country][mealType].map((food) => (
                   <TouchableOpacity
                     key={food.name}
                     style={styles.foodItem}
@@ -1830,6 +2021,32 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#FCA5A5',
     textAlign: 'center',
+    letterSpacing: 0.3,
+  },
+  countryContainer: {
+    marginBottom: 18,
+  },
+  countryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 10,
+  },
+  countryButton: {
+    flex: 1,
+    minWidth: '30%',
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    alignItems: 'center',
+    backgroundColor: 'rgba(22, 29, 41, 0.5)',
+    borderWidth: 2,
+    borderColor: 'rgba(0, 212, 255, 0.2)',
+  },
+  countryButtonText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.label,
     letterSpacing: 0.3,
   },
   trackerControls: {
