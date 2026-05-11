@@ -14,6 +14,25 @@ import {
 import { VictoryPie } from 'victory-native';
 import Svg from 'react-native-svg';
 
+// Firebase imports for authentication and database
+import { auth, db } from '../firebaseConfig';
+import { 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword, 
+  signOut,
+  onAuthStateChanged 
+} from 'firebase/auth';
+import { 
+  collection, 
+  addDoc, 
+  query, 
+  where, 
+  getDocs, 
+  doc,
+  setDoc,
+  getDoc
+} from 'firebase/firestore';
+
 const COLORS = {
   background: '#06070C',
   surface: '#0F1419',
@@ -407,6 +426,14 @@ const FoodsByCountry = {
 const CommonFoods = FoodsByCountry['Philippines'];
 
 export default function App() {
+  // User authentication state
+  const [user, setUser] = useState(null);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Calculator state
   const [age, setAge] = useState('');
   const [sex, setSex] = useState('Male');
   const [height, setHeight] = useState('');
@@ -429,7 +456,156 @@ export default function App() {
   const [weeklyData, setWeeklyData] = useState({});
   const getTodayDate = () => new Date().toISOString().split('T')[0];
 
-  const calculateBMI = (weightKg, heightCm) => {
+  // Check if user is logged in when app loads
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setUser(currentUser);
+      setLoading(false);
+      
+      // If user logged in, load their saved data
+      if (currentUser) {
+        await loadUserProfile(currentUser.uid);
+        await loadTodaysMeals(currentUser.uid);
+      }
+    });
+    
+    // Cleanup subscription when component unmounts
+    return () => unsubscribe();
+  }, []);
+
+  // ========== FIREBASE AUTHENTICATION FUNCTIONS ==========
+
+  const handleSignUp = async () => {
+    if (!email || !password) {
+      setError('⚠️ Please enter email and password');
+      return;
+    }
+    try {
+      setLoading(true);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      
+      // Create user profile in Firestore
+      await setDoc(doc(db, 'users', userCredential.user.uid), {
+        email: email,
+        createdAt: new Date(),
+        country: 'Philippines'
+      });
+      
+      setError('✅ Account created! You are logged in.');
+      setTimeout(() => setError(''), 2000);
+      setEmail('');
+      setPassword('');
+    } catch (err) {
+      setError('❌ ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogin = async () => {
+    if (!email || !password) {
+      setError('⚠️ Please enter email and password');
+      return;
+    }
+    try {
+      setLoading(true);
+      await signInWithEmailAndPassword(auth, email, password);
+      setError('✅ Login successful!');
+      setTimeout(() => setError(''), 2000);
+      setEmail('');
+      setPassword('');
+    } catch (err) {
+      setError('❌ ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      setLoading(true);
+      await signOut(auth);
+      setDailyMeals([]);
+      setWeeklyData({});
+      setError('✅ Logged out successfully');
+      setTimeout(() => setError(''), 2000);
+    } catch (err) {
+      setError('❌ ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ========== FIREBASE FIRESTORE FUNCTIONS ==========
+
+  const loadUserProfile = async (userId) => {
+    try {
+      const userDoc = await getDoc(doc(db, 'users', userId));
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        setCountry(userData.country || 'Philippines');
+      }
+    } catch (err) {
+      console.log('Error loading profile:', err);
+    }
+  };
+
+  const loadTodaysMeals = async (userId) => {
+    try {
+      const mealsRef = collection(db, 'users', userId, 'dailyMeals');
+      const q = query(mealsRef, where('date', '==', getTodayDate()));
+      const querySnapshot = await getDocs(q);
+      
+      if (!querySnapshot.empty) {
+        const mealData = querySnapshot.docs[0].data();
+        setDailyMeals(mealData.meals || []);
+      }
+    } catch (err) {
+      console.log('Error loading meals:', err);
+    }
+  };
+
+  const saveMealsToFirebase = async () => {
+    if (!user) {
+      setError('⚠️ Please login to save meals');
+      return;
+    }
+    
+    try {
+      const totals = calculateDailyTotals();
+      const mealsRef = collection(db, 'users', user.uid, 'dailyMeals');
+      
+      // Check if today's record exists
+      const q = query(mealsRef, where('date', '==', getTodayDate()));
+      const querySnapshot = await getDocs(q);
+      
+      if (!querySnapshot.empty) {
+        // Update existing record
+        const docRef = querySnapshot.docs[0].ref;
+        await setDoc(docRef, {
+          date: getTodayDate(),
+          meals: dailyMeals,
+          totals: totals,
+          timestamp: new Date()
+        });
+      } else {
+        // Create new record
+        await addDoc(mealsRef, {
+          date: getTodayDate(),
+          meals: dailyMeals,
+          totals: totals,
+          timestamp: new Date()
+        });
+      }
+      
+      setError('✅ Meals saved to Firebase!');
+      setTimeout(() => setError(''), 2000);
+    } catch (err) {
+      setError('❌ Error saving meals: ' + err.message);
+    }
+  };
+
+  // ========== CALCULATION FUNCTIONS ==========
     const heightM = heightCm / 100;
     return weightKg / (heightM * heightM);
   };
@@ -566,9 +742,14 @@ export default function App() {
     newWeeklyData[dateKey] = { meals: dailyMeals, totals };
     setWeeklyData(newWeeklyData);
     
-    if (errorTimeout) clearTimeout(errorTimeout);
-    setError('✅ Daily record saved!');
-    setErrorTimeout(setTimeout(() => setError(''), 2000));
+    // Save to Firebase if user is logged in
+    if (user) {
+      saveMealsToFirebase();
+    } else {
+      if (errorTimeout) clearTimeout(errorTimeout);
+      setError('✅ Daily record saved locally! (Login to sync to cloud)');
+      setErrorTimeout(setTimeout(() => setError(''), 2000));
+    }
   };
 
   const resetDaily = () => {
@@ -635,6 +816,82 @@ export default function App() {
           <Text style={styles.title}>💪 BMI & Macro</Text>
           <Text style={styles.subtitle}>Calculate your perfect nutrition plan</Text>
         </View>
+
+        {/* Show Login Screen if not logged in */}
+        {!user ? (
+          <View style={[styles.card, { marginHorizontal: 16 }]}>
+            <Text style={styles.cardTitle}>🔐 {isSignUp ? 'Create Account' : 'Welcome Back'}</Text>
+            
+            {/* Email Input */}
+            <TextInput
+              style={styles.input}
+              placeholder="Enter your email"
+              placeholderTextColor={COLORS.textSecondary}
+              keyboardType="email-address"
+              value={email}
+              onChangeText={setEmail}
+              editable={!loading}
+            />
+            
+            {/* Password Input */}
+            <TextInput
+              style={styles.input}
+              placeholder="Enter password"
+              placeholderTextColor={COLORS.textSecondary}
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+              editable={!loading}
+            />
+            
+            {/* Error/Success Message */}
+            {error && (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            )}
+            
+            {/* Auth Buttons */}
+            <TouchableOpacity
+              style={[styles.button, { backgroundColor: COLORS.accent, marginTop: 12 }]}
+              onPress={isSignUp ? handleSignUp : handleLogin}
+              disabled={loading}
+            >
+              <Text style={styles.buttonText}>
+                {loading ? '⏳ Loading...' : (isSignUp ? '📝 Sign Up' : '✅ Login')}
+              </Text>
+            </TouchableOpacity>
+            
+            {/* Toggle Sign Up / Login */}
+            <TouchableOpacity onPress={() => { setIsSignUp(!isSignUp); setError(''); }}>
+              <Text style={styles.toggleText}>
+                {isSignUp ? '✅ Already have an account? Login' : '📝 Need an account? Sign Up'}
+              </Text>
+            </TouchableOpacity>
+            
+            <Text style={styles.helpText}>
+              💡 Example: test@example.com | password123
+            </Text>
+          </View>
+        ) : (
+          <View style={[styles.card, { marginHorizontal: 16, marginBottom: 12 }]}>
+            <View style={styles.userCardHeader}>
+              <Text style={styles.welcomeText}>👋 Welcome, {user.email}!</Text>
+              <TouchableOpacity
+                style={styles.logoutButton}
+                onPress={handleLogout}
+                disabled={loading}
+              >
+                <Text style={styles.logoutButtonText}>🚪 Logout</Text>
+              </TouchableOpacity>
+            </View>
+            {error && (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            )}
+          </View>
+        )}
 
         {/* Input Card */}
         <View style={styles.card}>
@@ -2200,6 +2457,96 @@ const styles = StyleSheet.create({
   removeButtonText: {
     fontSize: 14,
     fontWeight: '900',
+    color: '#FCA5A5',
+  },
+
+  // ========== LOGIN/AUTH STYLES ==========
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: COLORS.accent,
+    marginBottom: 16,
+    letterSpacing: 0.3,
+  },
+  input: {
+    backgroundColor: 'rgba(15, 20, 25, 0.6)',
+    borderWidth: 2,
+    borderColor: 'rgba(0, 212, 255, 0.2)',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    color: COLORS.label,
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  errorContainer: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: 'rgba(239, 68, 68, 0.4)',
+  },
+  button: {
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    justWeight: 'center',
+    borderWidth: 2,
+    borderColor: COLORS.accent,
+    ...Platform.select({
+      native: {
+        shadowOpacity: 0.25,
+        shadowRadius: 12,
+        elevation: 8,
+      },
+    }),
+  },
+  buttonText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#06070C',
+    letterSpacing: 0.3,
+  },
+  toggleText: {
+    fontSize: 13,
+    color: COLORS.accent,
+    textAlign: 'center',
+    marginTop: 14,
+    fontWeight: '700',
+    textDecorationLine: 'underline',
+  },
+  helpText: {
+    fontSize: 12,
+    color: COLORS.label,
+    textAlign: 'center',
+    marginTop: 14,
+    fontStyle: 'italic',
+    fontWeight: '600',
+  },
+  userCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  welcomeText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: COLORS.accent,
+    flex: 1,
+  },
+  logoutButton: {
+    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderWidth: 2,
+    borderColor: 'rgba(239, 68, 68, 0.4)',
+  },
+  logoutButtonText: {
+    fontSize: 12,
+    fontWeight: '800',
     color: '#FCA5A5',
   },
 });
