@@ -249,7 +249,7 @@ export default function App() {
   const [customFoodCalories, setCustomFoodCalories] = useState('');
   const [showFoodPicker, setShowFoodPicker] = useState(false);
   const [mealType, setMealType] = useState('breakfast');
-  const [weeklyData, setWeeklyData] = useState(JSON.parse(JSON.stringify({})));
+  const [weeklyData, setWeeklyData] = useState({});
   const getTodayDate = () => new Date().toISOString().split('T')[0];
 
   const calculateBMI = (weightKg, heightCm) => {
@@ -1916,6 +1916,5 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#FCA5A5',
   },
-  success: '#10B981',
 });
 
