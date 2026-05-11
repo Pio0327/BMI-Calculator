@@ -17,13 +17,14 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-  // REPLACE THESE WITH YOUR FIREBASE CONFIG VALUES
-  apiKey: "AIzaSyxxxxxxxxxxxxxxxxxxxxxxxxxx", // Your API key
-  authDomain: "your-project-id.firebaseapp.com",
-  projectId: "your-project-id",
-  storageBucket: "your-project-id.appspot.com",
-  messagingSenderId: "123456789012",
-  appId: "1:123456789012:web:abcdef1234567890"
+  // TODO: Replace with your actual Firebase config from Firebase Console
+   apiKey: "AIzaSyAVPOoMSijc4LAq6xuaEzlkd4adw0N9kHQ",
+  authDomain: "bmi-macro-calculator.firebaseapp.com",
+  projectId: "bmi-macro-calculator",
+  storageBucket: "bmi-macro-calculator.firebasestorage.app",
+  messagingSenderId: "623387757287",
+  appId: "1:623387757287:web:a8626bbc05661095c5f042",
+  measurementId: "G-Z3XL06GG16"
 };
 
 // Initialize Firebase

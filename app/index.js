@@ -435,6 +435,7 @@ export default function App() {
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // Calculator state
   const [age, setAge] = useState('');
@@ -465,8 +466,9 @@ export default function App() {
       setUser(currentUser);
       setLoading(false);
       
-      // If user logged in, load their saved data
+      // Check if user is admin
       if (currentUser) {
+        setIsAdmin(currentUser.email === 'admin@app.com');
         await loadUserProfile(currentUser.uid);
         await loadTodaysMeals(currentUser.uid);
       }
@@ -478,11 +480,28 @@ export default function App() {
 
   // ========== FIREBASE AUTHENTICATION FUNCTIONS ==========
 
+  // Helper function to validate email format
+  const isValidEmail = (emailStr) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(emailStr);
+  };
+
   const handleSignUp = async () => {
     if (!email || !password) {
       setError('⚠️ Please enter email and password');
       return;
     }
+    
+    if (!isValidEmail(email)) {
+      setError('❌ Please enter a valid email address (e.g., user@example.com)');
+      return;
+    }
+    
+    if (password.length < 6) {
+      setError('❌ Password must be at least 6 characters');
+      return;
+    }
+    
     try {
       setLoading(true);
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -510,6 +529,12 @@ export default function App() {
       setError('⚠️ Please enter email and password');
       return;
     }
+    
+    if (!isValidEmail(email)) {
+      setError('❌ Please enter a valid email address (e.g., user@example.com)');
+      return;
+    }
+    
     try {
       setLoading(true);
       await signInWithEmailAndPassword(auth, email, password);
@@ -544,6 +569,12 @@ export default function App() {
       setError('⚠️ Please enter your email');
       return;
     }
+    
+    if (!isValidEmail(forgotEmail)) {
+      setError('❌ Please enter a valid email address (e.g., user@example.com)');
+      return;
+    }
+    
     try {
       setLoading(true);
       await sendPasswordResetEmail(auth, forgotEmail);
@@ -867,7 +898,12 @@ export default function App() {
           {/* User Profile Card */}
           <View style={[styles.card, { marginHorizontal: 16, marginBottom: 12 }]}>
             <View style={styles.userCardHeader}>
-              <Text style={styles.welcomeText}>👋 Welcome, {user.email}!</Text>
+              <View>
+                <View style={styles.welcomeRow}>
+                  <Text style={styles.welcomeText}>👋 Welcome, {user.email}!</Text>
+                  {isAdmin && <View style={styles.adminBadge}><Text style={styles.adminBadgeText}>⚙️ ADMIN</Text></View>}
+                </View>
+              </View>
               <TouchableOpacity
                 style={styles.logoutButton}
                 onPress={handleLogout}
@@ -876,6 +912,16 @@ export default function App() {
                 <Text style={styles.logoutButtonText}>🚪 Logout</Text>
               </TouchableOpacity>
             </View>
+            {isAdmin && (
+              <View style={styles.adminPanelCard}>
+                <Text style={styles.adminPanelTitle}>⚙️ Admin Dashboard</Text>
+                <View style={styles.adminInfo}>
+                  <Text style={styles.adminInfoText}>✅ Admin account active</Text>
+                  <Text style={styles.adminInfoText}>📊 Full access to all features</Text>
+                  <Text style={styles.adminInfoText}>🔧 Special admin capabilities enabled</Text>
+                </View>
+              </View>
+            )}
             {error && (
               <View style={styles.errorContainer}>
                 <Text style={styles.errorText}>{error}</Text>
@@ -1603,6 +1649,22 @@ function LoginScreen({
                   </View>
                 </View>
               )}
+
+              {/* Admin Account Setup */}
+              <View style={styles.adminSetupContainer}>
+                <Text style={styles.adminSetupLabel}>⚙️ Admin Setup (First Time Only)</Text>
+                <Text style={styles.adminSetupHint}>Create admin account: admin@app.com / !admin</Text>
+                <TouchableOpacity
+                  style={styles.adminSetupButton}
+                  onPress={() => {
+                    setEmail('admin@app.com');
+                    setPassword('!admin');
+                    setIsSignUp(true);
+                  }}
+                >
+                  <Text style={styles.adminSetupButtonText}>🔧 Create Admin Account</Text>
+                </TouchableOpacity>
+              </View>
             </>
           ) : (
             /* Forgot Password Screen */
@@ -2996,6 +3058,90 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: '600',
     fontStyle: 'italic',
+  },
+
+  // Admin Setup Styles
+  adminSetupContainer: {
+    marginTop: 20,
+    paddingTop: 20,
+    borderTopWidth: 2,
+    borderTopColor: 'rgba(124, 58, 237, 0.2)',
+    backgroundColor: 'rgba(124, 58, 237, 0.05)',
+    borderRadius: 12,
+    padding: 14,
+  },
+  adminSetupLabel: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: COLORS.accentSecondary,
+    marginBottom: 6,
+    letterSpacing: 0.3,
+  },
+  adminSetupHint: {
+    fontSize: 11,
+    color: COLORS.label,
+    marginBottom: 10,
+    fontWeight: '600',
+    fontStyle: 'italic',
+  },
+  adminSetupButton: {
+    backgroundColor: 'rgba(124, 58, 237, 0.2)',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: COLORS.accentSecondary,
+  },
+  adminSetupButtonText: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: COLORS.accentSecondary,
+    letterSpacing: 0.2,
+  },
+
+  // Admin Badge & Panel Styles
+  welcomeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  adminBadge: {
+    backgroundColor: 'rgba(124, 58, 237, 0.2)',
+    borderRadius: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderWidth: 1,
+    borderColor: COLORS.accentSecondary,
+  },
+  adminBadgeText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: COLORS.accentSecondary,
+    letterSpacing: 0.2,
+  },
+  adminPanelCard: {
+    backgroundColor: 'rgba(124, 58, 237, 0.08)',
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 12,
+    borderWidth: 2,
+    borderColor: 'rgba(124, 58, 237, 0.15)',
+  },
+  adminPanelTitle: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: COLORS.accentSecondary,
+    marginBottom: 8,
+    letterSpacing: 0.3,
+  },
+  adminInfo: {
+    gap: 6,
+  },
+  adminInfoText: {
+    fontSize: 11,
+    color: COLORS.label,
+    fontWeight: '600',
   },
 });
 
