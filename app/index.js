@@ -432,6 +432,9 @@ export default function App() {
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
@@ -511,8 +514,8 @@ export default function App() {
   };
 
   const handleSignUp = async () => {
-    if (!email || !username || !password) {
-      setError('⚠️ Please enter email, username, and password');
+    if (!email || !username || !password || !confirmPassword) {
+      setError('⚠️ Please fill in all fields');
       return;
     }
     
@@ -530,10 +533,18 @@ export default function App() {
       setError('❌ Password must be at least 6 characters');
       return;
     }
+
+    if (password !== confirmPassword) {
+      setError('❌ Passwords do not match');
+      return;
+    }
     
     try {
       setLoading(true);
+      console.log('Creating user with email:', email, 'username:', username);
+      
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      console.log('User created successfully:', userCredential.user.uid);
       
       // Create user profile in Firestore with username
       await setDoc(doc(db, 'users', userCredential.user.uid), {
@@ -543,13 +554,28 @@ export default function App() {
         country: 'Philippines'
       });
       
+      console.log('User profile saved to Firestore');
       setError('✅ Account created! You are logged in.');
       setTimeout(() => setError(''), 2000);
       setEmail('');
       setUsername('');
       setPassword('');
+      setConfirmPassword('');
+      setShowPassword(false);
+      setShowConfirmPassword(false);
     } catch (err) {
-      setError('❌ ' + err.message);
+      console.error('Signup error:', err.message);
+      
+      // Handle specific Firebase errors
+      if (err.code === 'auth/email-already-in-use') {
+        setError('❌ This email is already registered');
+      } else if (err.code === 'auth/weak-password') {
+        setError('❌ Password is too weak. Use at least 6 characters');
+      } else if (err.code === 'auth/invalid-email') {
+        setError('❌ Invalid email format');
+      } else {
+        setError('❌ ' + err.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -572,23 +598,43 @@ export default function App() {
       }
       
       // Look up email by username
+      console.log('Looking up email for username:', email);
       const foundEmail = await findEmailByUsername(email);
       if (!foundEmail) {
         setError('❌ Username not found');
         return;
       }
+      console.log('Found email:', foundEmail);
       loginEmail = foundEmail;
     }
     
     try {
       setLoading(true);
+      console.log('Attempting login with:', loginEmail);
+      
       await signInWithEmailAndPassword(auth, loginEmail, password);
+      console.log('Login successful!');
+      
       setError('✅ Login successful!');
       setTimeout(() => setError(''), 2000);
       setEmail('');
       setPassword('');
+      setShowPassword(false);
     } catch (err) {
-      setError('❌ ' + err.message);
+      console.error('Login error:', err.message, err.code);
+      
+      // Handle specific Firebase errors
+      if (err.code === 'auth/user-not-found') {
+        setError('❌ User not found. Please sign up first');
+      } else if (err.code === 'auth/wrong-password') {
+        setError('❌ Incorrect password');
+      } else if (err.code === 'auth/invalid-email') {
+        setError('❌ Invalid email format');
+      } else if (err.code === 'auth/user-disabled') {
+        setError('❌ This account has been disabled');
+      } else {
+        setError('❌ ' + err.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -1623,19 +1669,53 @@ function LoginScreen({
                 </View>
               )}
 
-              {/* Password Input */}
+              {/* Password Input with Show/Hide Toggle */}
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>🔒 Password</Text>
-                <TextInput
-                  style={styles.loginInput}
-                  placeholder="Enter your password"
-                  placeholderTextColor="#A0AEC0"
-                  secureTextEntry
-                  value={password}
-                  onChangeText={setPassword}
-                  editable={!loading}
-                />
+                <View style={styles.passwordInputContainer}>
+                  <TextInput
+                    style={styles.passwordInput}
+                    placeholder="Enter your password"
+                    placeholderTextColor="#A0AEC0"
+                    secureTextEntry={!showPassword}
+                    value={password}
+                    onChangeText={setPassword}
+                    editable={!loading}
+                  />
+                  <TouchableOpacity
+                    onPress={() => setShowPassword(!showPassword)}
+                    disabled={loading}
+                    style={styles.eyeButton}
+                  >
+                    <Text style={styles.eyeIcon}>{showPassword ? '👁️' : '👁️‍🗨️'}</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
+
+              {/* Confirm Password Input (only for signup) */}
+              {isSignUp && (
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>✓ Confirm Password</Text>
+                  <View style={styles.passwordInputContainer}>
+                    <TextInput
+                      style={styles.passwordInput}
+                      placeholder="Confirm your password"
+                      placeholderTextColor="#A0AEC0"
+                      secureTextEntry={!showConfirmPassword}
+                      value={confirmPassword}
+                      onChangeText={setConfirmPassword}
+                      editable={!loading}
+                    />
+                    <TouchableOpacity
+                      onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                      disabled={loading}
+                      style={styles.eyeButton}
+                    >
+                      <Text style={styles.eyeIcon}>{showConfirmPassword ? '👁️' : '👁️‍🗨️'}</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
 
               {/* Error/Success Message */}
               {error && (
@@ -1657,7 +1737,11 @@ function LoginScreen({
 
               {/* Forgot Password Link (only on login mode) */}
               {!isSignUp && (
-                <TouchableOpacity onPress={() => setIsForgotPassword(true)}>
+                <TouchableOpacity onPress={() => {
+                  setIsForgotPassword(true);
+                  setShowPassword(false);
+                  setShowConfirmPassword(false);
+                }}>
                   <Text style={styles.forgotPasswordLink}>🔑 Forgot your password?</Text>
                 </TouchableOpacity>
               )}
@@ -1692,6 +1776,9 @@ function LoginScreen({
                     setEmail('');
                     setUsername('');
                     setPassword('');
+                    setConfirmPassword('');
+                    setShowPassword(false);
+                    setShowConfirmPassword(false);
                   }}
                 >
                   <Text style={styles.toggleLink}>
@@ -1729,6 +1816,7 @@ function LoginScreen({
                     setEmail('admin@app.com');
                     setUsername('admin');
                     setPassword('!admin');
+                    setConfirmPassword('!admin');
                     setIsSignUp(true);
                   }}
                 >
@@ -1774,7 +1862,12 @@ function LoginScreen({
                 </Text>
               </TouchableOpacity>
 
-              <TouchableOpacity onPress={() => { setIsForgotPassword(false); setError(''); }}>
+              <TouchableOpacity onPress={() => { 
+                setIsForgotPassword(false); 
+                setError('');
+                setShowPassword(false);
+                setShowConfirmPassword(false);
+              }}>
                 <Text style={styles.backLink}>← Back to Login</Text>
               </TouchableOpacity>
             </>
@@ -2971,6 +3064,29 @@ const styles = StyleSheet.create({
     color: COLORS.label,
     fontSize: 14,
     fontWeight: '600',
+  },
+  passwordInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(6, 7, 12, 0.6)',
+    borderWidth: 2,
+    borderColor: 'rgba(0, 212, 255, 0.25)',
+    borderRadius: 14,
+  },
+  passwordInput: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    color: COLORS.label,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  eyeButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+  },
+  eyeIcon: {
+    fontSize: 18,
   },
   usernameHint: {
     fontSize: 11,
