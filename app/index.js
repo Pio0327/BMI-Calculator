@@ -9,6 +9,7 @@ import {
   SafeAreaView,
   Animated,
   Dimensions,
+  Platform,
 } from 'react-native';
 import { VictoryPie } from 'victory-native';
 import Svg from 'react-native-svg';
@@ -1099,10 +1100,14 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     borderWidth: 1.5,
     borderColor: 'rgba(0, 212, 255, 0.2)',
-    shadowColor: '#00D4FF',
-    shadowOpacity: 0.25,
-    shadowRadius: 25,
-    elevation: 12,
+    ...Platform.select({
+      native: {
+        shadowColor: '#00D4FF',
+        shadowOpacity: 0.25,
+        shadowRadius: 25,
+        elevation: 12,
+      },
+    }),
     overflow: 'hidden',
   },
   sectionTitle: {
@@ -1148,10 +1153,14 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
     alignItems: 'center',
     backgroundColor: 'rgba(22, 29, 41, 0.6)',
-    shadowColor: 'rgba(0, 0, 0, 0.2)',
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 2,
+    ...Platform.select({
+      native: {
+        shadowColor: 'rgba(0, 0, 0, 0.2)',
+        shadowOpacity: 0.1,
+        shadowRadius: 6,
+        elevation: 2,
+      },
+    }),
     transitionDuration: 200,
   },
   sexButtonText: {
@@ -1172,10 +1181,14 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(0, 212, 255, 0.2)',
     alignItems: 'center',
     backgroundColor: 'rgba(22, 29, 41, 0.5)',
-    shadowColor: '#00D4FF',
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    ...Platform.select({
+      native: {
+        shadowColor: '#00D4FF',
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 3,
+      },
+    }),
   },
   toggleText: {
     fontSize: 13,
@@ -1201,10 +1214,14 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(0, 212, 255, 0.2)',
     alignItems: 'center',
     backgroundColor: 'rgba(22, 29, 41, 0.5)',
-    shadowColor: '#00D4FF',
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    ...Platform.select({
+      native: {
+        shadowColor: '#00D4FF',
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 3,
+      },
+    }),
   },
   activityText: {
     fontSize: 13,
@@ -1226,10 +1243,14 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(0, 212, 255, 0.2)',
     alignItems: 'center',
     backgroundColor: 'rgba(22, 29, 41, 0.5)',
-    shadowColor: '#00D4FF',
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    ...Platform.select({
+      native: {
+        shadowColor: '#00D4FF',
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 3,
+      },
+    }),
   },
   goalButtonText: {
     fontSize: 13,
@@ -1243,10 +1264,14 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     backgroundColor: COLORS.accent,
-    shadowColor: '#00D4FF',
-    shadowOpacity: 0.45,
-    shadowRadius: 22,
-    elevation: 15,
+    ...Platform.select({
+      native: {
+        shadowColor: '#00D4FF',
+        shadowOpacity: 0.45,
+        shadowRadius: 22,
+        elevation: 15,
+      },
+    }),
     borderWidth: 2,
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
@@ -1297,10 +1322,14 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(0, 212, 255, 0.25)',
     borderLeftColor: COLORS.accent,
     borderLeftWidth: 6,
-    shadowColor: COLORS.accent,
-    shadowOpacity: 0.3,
-    shadowRadius: 18,
-    elevation: 10,
+    ...Platform.select({
+      native: {
+        shadowColor: COLORS.accent,
+        shadowOpacity: 0.3,
+        shadowRadius: 18,
+        elevation: 10,
+      },
+    }),
   },
   calorieLabel: {
     fontSize: 14,
@@ -1336,9 +1365,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 2,
     borderColor: 'rgba(0, 212, 255, 0.15)',
-    shadowOpacity: 0.2,
-    shadowRadius: 14,
-    elevation: 7,
+    ...Platform.select({
+      native: {
+        shadowOpacity: 0.2,
+        shadowRadius: 14,
+        elevation: 7,
+      },
+    }),
   },
   macroCardIcon: {
     fontSize: 28,
@@ -1373,10 +1406,14 @@ const styles = StyleSheet.create({
     padding: 18,
     borderWidth: 2,
     borderColor: 'rgba(16, 185, 129, 0.3)',
-    shadowColor: '#10B981',
-    shadowOpacity: 0.2,
-    shadowRadius: 14,
-    elevation: 7,
+    ...Platform.select({
+      native: {
+        shadowColor: '#10B981',
+        shadowOpacity: 0.2,
+        shadowRadius: 14,
+        elevation: 7,
+      },
+    }),
   },
   tipsTitle: {
     fontSize: 14,
@@ -1458,10 +1495,14 @@ const styles = StyleSheet.create({
     padding: 20,
     borderWidth: 1.5,
     borderColor: 'rgba(0, 212, 255, 0.15)',
-    shadowColor: '#00D4FF',
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 8,
+    ...Platform.select({
+      native: {
+        shadowColor: '#00D4FF',
+        shadowOpacity: 0.15,
+        shadowRadius: 16,
+        elevation: 8,
+      },
+    }),
   },
   waterValue: {
     fontSize: 48,
@@ -1488,10 +1529,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1.5,
     borderColor: 'rgba(124, 58, 237, 0.15)',
-    shadowColor: '#7C3AED',
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 8,
+    ...Platform.select({
+      native: {
+        shadowColor: '#7C3AED',
+        shadowOpacity: 0.15,
+        shadowRadius: 16,
+        elevation: 8,
+      },
+    }),
   },
   timelineWeeks: {
     fontSize: 56,
@@ -1523,9 +1568,13 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 2,
     borderColor: 'rgba(0, 212, 255, 0.15)',
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 6,
+    ...Platform.select({
+      native: {
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+        elevation: 6,
+      },
+    }),
   },
   mealItemTitle: {
     fontSize: 12,
@@ -1571,9 +1620,13 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 2,
     borderColor: 'rgba(0, 212, 255, 0.15)',
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 6,
+    ...Platform.select({
+      native: {
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+        elevation: 6,
+      },
+    }),
   },
   nutritionLabel: {
     fontSize: 13,
@@ -1599,9 +1652,13 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'rgba(0, 212, 255, 0.15)',
     gap: 12,
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 6,
+    ...Platform.select({
+      native: {
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+        elevation: 6,
+      },
+    }),
   },
   tipIcon: {
     fontSize: 26,
@@ -1635,9 +1692,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 2,
     borderColor: 'rgba(0, 212, 255, 0.15)',
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 6,
+    ...Platform.select({
+      native: {
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+        elevation: 6,
+      },
+    }),
   },
   summaryIcon: {
     fontSize: 28,
@@ -1677,10 +1738,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(0, 212, 255, 0.08)',
-    shadowColor: '#00D4FF',
-    shadowOpacity: 0.4,
-    shadowRadius: 25,
-    elevation: 12,
+    ...Platform.select({
+      native: {
+        shadowColor: '#00D4FF',
+        shadowOpacity: 0.4,
+        shadowRadius: 25,
+        elevation: 12,
+      },
+    }),
     flexShrink: 0,
   },
   bmiValue: {
@@ -1724,10 +1789,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 2,
     borderColor: 'rgba(0, 212, 255, 0.15)',
-    shadowColor: '#00D4FF',
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 6,
+    ...Platform.select({
+      native: {
+        shadowColor: '#00D4FF',
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+        elevation: 6,
+      },
+    }),
   },
   metricLabel: {
     fontSize: 13,
