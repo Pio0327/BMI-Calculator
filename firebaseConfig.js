@@ -12,29 +12,37 @@
  * 5. Copy the firebaseConfig object below
  */
 
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-  // TODO: Replace with your actual Firebase config from Firebase Console
-   apiKey: "AIzaSyAVPOoMSijc4LAq6xuaEzlkd4adw0N9kHQ",
+  apiKey: "AIzaSyAVPOoMSijc4LAq6xuaEzlkd4adw0N9kHQ",
   authDomain: "bmi-macro-calculator.firebaseapp.com",
   projectId: "bmi-macro-calculator",
   storageBucket: "bmi-macro-calculator.firebasestorage.app",
   messagingSenderId: "623387757287",
-  appId: "1:623387757287:web:a8626bbc05661095c5f042",
-  measurementId: "G-Z3XL06GG16"
+  appId: "1:623387757287:web:a8626bbc05661095c5f042"
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+console.log('🔥 Firebase Config loaded');
 
-// Get Auth instance (for login/signup)
-export const auth = getAuth(app);
+// Initialize Firebase only if not already initialized
+let app;
+if (getApps().length === 0) {
+  app = initializeApp(firebaseConfig);
+  console.log('✅ Firebase app initialized');
+} else {
+  app = getApps()[0];
+  console.log('✅ Firebase app already initialized');
+}
 
-// Get Firestore instance (for database)
-export const db = getFirestore(app);
+// Initialize Auth
+const auth = getAuth(app);
+console.log('✅ Firebase Auth initialized');
 
-// Export app for other uses if needed
-export default app;
+// Initialize Firestore
+const db = getFirestore(app);
+console.log('✅ Firestore DB initialized');
+
+export { auth, db, app };

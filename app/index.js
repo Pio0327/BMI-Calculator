@@ -15,7 +15,7 @@ import { VictoryPie } from 'victory-native';
 import Svg from 'react-native-svg';
 
 // Firebase imports for authentication and database
-import { auth, db } from '../firebaseConfig';
+import { auth, db } from '../firebaseConfig.js';
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
@@ -35,27 +35,37 @@ import {
 } from 'firebase/firestore';
 
 const COLORS = {
-  background: '#06070C',
+  background: '#0A0E1A',
   surface: '#0F1419',
-  card: '#0F1419',
+  card: '#1A1F2E',
+  cardAlt: '#252B3D',
   text: '#FFFFFF',
-  textSecondary: '#E0E0E0',
-  label: '#F0F0F0',
-  border: '#1E2139',
-  accent: '#00D4FF',
-  accentSecondary: '#7C3AED',
+  textSecondary: '#B0B8C8',
+  label: '#E8EAED',
+  border: '#2A3142',
+  
+  // Modern neon accents
+  accent: '#C0FF00', // Lime green
+  accentSecondary: '#7C3AED', // Purple
+  accentTertiary: '#00D4FF', // Cyan
+  
+  // Status colors
   protein: '#10B981',
-  carbs: '#F59E0B',
-  fat: '#EF4444',
+  carbs: '#FFB800',
+  fat: '#FF6B6B',
+  
   white: '#FFFFFF',
   underweight: '#0EA5E9',
   normal: '#10B981',
   overweight: '#F59E0B',
   obese: '#EF4444',
   success: '#10B981',
-  warning: '#F59E0B',
-  gradient1: '#00D4FF',
+  warning: '#FFB800',
+  
+  // Gradients
+  gradient1: '#C0FF00',
   gradient2: '#7C3AED',
+  gradient3: '#00D4FF',
 };
 
 const ActivityMultipliers = {
@@ -440,6 +450,7 @@ export default function App() {
   const [forgotEmail, setForgotEmail] = useState('');
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [activeSection, setActiveSection] = useState('metrics'); // Navigation state
 
   // Calculator state
   const [age, setAge] = useState('');
@@ -465,20 +476,84 @@ export default function App() {
   const getTodayDate = () => new Date().toISOString().split('T')[0];
 
   // Check if user is logged in when app loads
+  // Initialize admin account on app startup
+  const initializeAdminAccount = async () => {
+    try {
+      console.log('🔧 Starting admin account initialization...');
+      
+      const adminEmail = 'admin@bmi-calculator.app';
+      const adminPassword = '!admin';
+      const adminUsername = 'admin';
+
+      try {
+        console.log('📝 Attempting to create admin account...');
+        const userCredential = await createUserWithEmailAndPassword(auth, adminEmail, adminPassword);
+        const adminUserId = userCredential.user.uid;
+        console.log('✅ Admin Auth account created:', adminUserId);
+
+        await setDoc(doc(db, 'users', adminUserId), {
+          email: adminEmail,
+          username: adminUsername,
+          createdAt: new Date().toISOString(),
+          country: 'Philippines',
+        });
+
+        console.log('✅ Admin profile created in Firestore');
+      } catch (err) {
+        if (err.code === 'auth/email-already-in-use') {
+          console.log('✅ Admin account already exists');
+          
+          // Try to find the admin user and update/create their profile with username
+          try {
+            const usersRef = collection(db, 'users');
+            const q = query(usersRef, where('email', '==', adminEmail));
+            const querySnapshot = await getDocs(q);
+            
+            if (!querySnapshot.empty) {
+              const adminDoc = querySnapshot.docs[0];
+              await setDoc(doc(db, 'users', adminDoc.id), {
+                email: adminEmail,
+                username: adminUsername,
+                createdAt: new Date().toISOString(),
+                country: 'Philippines',
+              }, { merge: true });
+              
+              console.log('✅ Admin profile updated in Firestore with username');
+            } else {
+              console.log('⚠️ Admin auth exists but no Firestore profile found');
+            }
+          } catch (updateErr) {
+            console.log('ℹ️ Could not update admin profile:', updateErr.message);
+          }
+        } else {
+          console.log('ℹ️ Admin init note:', err.code, '-', err.message);
+        }
+      }
+    } catch (err) {
+      console.error('❌ Admin initialization error:', err);
+    }
+  };
+
   useEffect(() => {
+    console.log('🚀 App mounted, setting up auth listener');
+    
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      console.log('👤 Auth state changed:', currentUser ? currentUser.email : 'No user');
       setUser(currentUser);
       setLoading(false);
       
-      // Check if user is admin
       if (currentUser) {
-        setIsAdmin(currentUser.email === 'admin@app.com');
+        console.log('📂 Loading user profile for:', currentUser.uid);
         await loadUserProfile(currentUser.uid);
         await loadTodaysMeals(currentUser.uid);
       }
     });
     
-    // Cleanup subscription when component unmounts
+    // Initialize admin account after auth is set up
+    setTimeout(() => {
+      initializeAdminAccount();
+    }, 2000);
+    
     return () => unsubscribe();
   }, []);
 
@@ -499,16 +574,23 @@ export default function App() {
   // Function to find email by username in Firestore
   const findEmailByUsername = async (usernameToFind) => {
     try {
+      console.log('🔍 Searching for username:', usernameToFind);
       const usersRef = collection(db, 'users');
       const q = query(usersRef, where('username', '==', usernameToFind));
       const querySnapshot = await getDocs(q);
       
+      console.log('📊 Query returned:', querySnapshot.size, 'documents');
+      
       if (!querySnapshot.empty) {
-        return querySnapshot.docs[0].data().email;
+        const email = querySnapshot.docs[0].data().email;
+        console.log('✅ Found email:', email, 'for username:', usernameToFind);
+        return email;
       }
+      
+      console.log('❌ Username not found in Firestore:', usernameToFind);
       return null;
     } catch (err) {
-      console.log('Error finding username:', err);
+      console.error('❌ Error finding username:', err.code, err.message);
       return null;
     }
   };
@@ -690,6 +772,8 @@ export default function App() {
       if (userDoc.exists()) {
         const userData = userDoc.data();
         setCountry(userData.country || 'Philippines');
+        // Check if this user is admin based on username
+        setIsAdmin(userData.username === 'admin');
       }
     } catch (err) {
       console.log('Error loading profile:', err);
@@ -955,6 +1039,40 @@ export default function App() {
     }).start();
   };
 
+  // ========== NAVBAR COMPONENT ==========
+  const NavBar = () => {
+    const navItems = [
+      { id: 'metrics', label: '📊 Metrics', icon: '📊' },
+      { id: 'tracker', label: '📅 Tracker', icon: '📅' },
+      { id: 'results', label: '📈 Results', icon: '📈' },
+      { id: 'workout', label: '💪 Workout', icon: '💪' },
+      { id: 'wellness', label: '😴 Wellness', icon: '😴' },
+    ];
+
+    return (
+      <View style={styles.navbar}>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.navbarContent}
+        >
+          {navItems.map((item) => (
+            <TouchableOpacity
+              key={item.id}
+              style={[
+                styles.navItem,
+                activeSection === item.id && styles.navItemActive,
+              ]}
+              onPress={() => setActiveSection(item.id)}
+            >
+              <Text style={styles.navItemText}>{item.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+    );
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: COLORS.background }]}>
       {/* Show full-screen login page if not authenticated */}
@@ -987,9 +1105,14 @@ export default function App() {
         />
       ) : (
         /* Main App - Only shows when user is logged in */
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          {/* Header */}
-          <View style={styles.header}>
+        <View style={{ flex: 1 }}>
+          {/* Navigation Bar */}
+          <NavBar />
+          
+          {/* Main Content */}
+          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+            {/* Header */}
+            <View style={styles.header}>
             <Text style={styles.title}>💪 BMI & Macro</Text>
             <Text style={styles.subtitle}>Calculate your perfect nutrition plan</Text>
           </View>
@@ -1028,7 +1151,8 @@ export default function App() {
             )}
           </View>
 
-          {/* Input Card */}
+          {/* Metrics Section */}
+          {activeSection === 'metrics' && (
           <View style={styles.card}>
           <Text style={styles.sectionTitle}>Your Metrics</Text>
 
@@ -1191,8 +1315,10 @@ export default function App() {
             <Text style={styles.calculateButtonText}>📊 Calculate Results</Text>
           </TouchableOpacity>
         </View>
+          )}
 
-        {/* Daily Calorie Tracker */}
+        {/* Tracker Section */}
+        {activeSection === 'tracker' && (
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>📅 Daily Tracker</Text>
 
@@ -1349,9 +1475,10 @@ export default function App() {
             </>
           )}
         </View>
+        )}
 
-        {/* Results */}
-        {results && (
+        {/* Results Section */}
+        {activeSection === 'results' && results && (
           <Animated.View style={{ opacity: fadeAnim }}>
             {/* BMI Card */}
             <View style={styles.card}>
@@ -1587,7 +1714,8 @@ export default function App() {
         )}
 
         <View style={{ height: 30 }} />
-      </ScrollView>
+          </ScrollView>
+        </View>
       )}
     </SafeAreaView>
   );
@@ -1818,23 +1946,7 @@ function LoginScreen({
                 </View>
               )}
 
-              {/* Admin Account Setup */}
-              <View style={styles.adminSetupContainer}>
-                <Text style={styles.adminSetupLabel}>⚙️ Admin Setup (First Time Only)</Text>
-                <Text style={styles.adminSetupHint}>Email: admin@app.com | Username: admin | Password: !admin</Text>
-                <TouchableOpacity
-                  style={styles.adminSetupButton}
-                  onPress={() => {
-                    setEmail('admin@app.com');
-                    setUsername('admin');
-                    setPassword('!admin');
-                    setConfirmPassword('!admin');
-                    setIsSignUp(true);
-                  }}
-                >
-                  <Text style={styles.adminSetupButtonText}>🔧 Create Admin Account</Text>
-                </TouchableOpacity>
-              </View>
+
             </>
           ) : (
             /* Forgot Password Screen */
@@ -1954,56 +2066,137 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 40,
   },
+  // ========== NAVBAR STYLES ==========
+  navbar: {
+    backgroundColor: 'rgba(10, 14, 26, 0.98)',
+    borderBottomWidth: 2,
+    borderBottomColor: '#C0FF00',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 4px 20px rgba(192, 255, 0, 0.15)',
+      },
+      native: {
+        shadowColor: '#C0FF00',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        elevation: 5,
+      },
+    }),
+  },
+  navbarContent: {
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    gap: 8,
+  },
+  navItem: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    marginHorizontal: 4,
+    borderRadius: 12,
+    backgroundColor: 'rgba(42, 49, 66, 0.5)',
+    borderWidth: 1.5,
+    borderColor: '#2A3142',
+  },
+  navItemActive: {
+    backgroundColor: 'rgba(192, 255, 0, 0.15)',
+    borderColor: '#C0FF00',
+    ...Platform.select({
+      web: {
+        boxShadow: '0 0 16px rgba(192, 255, 0, 0.4)',
+      },
+      native: {
+        shadowColor: '#C0FF00',
+        shadowOpacity: 0.4,
+        shadowRadius: 6,
+        elevation: 4,
+      },
+    }),
+  },
+  navItemText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.text,
+    letterSpacing: 0.6,
+  },
   header: {
     marginBottom: 40,
-    paddingTop: 20,
+    paddingTop: 24,
     paddingHorizontal: 20,
-    paddingVertical: 24,
-    backgroundColor: 'linear-gradient(135deg, rgba(0, 212, 255, 0.08) 0%, rgba(124, 58, 237, 0.08) 100%)',
-    borderRadius: 24,
-    borderWidth: 1.5,
-    borderColor: 'rgba(0, 212, 255, 0.15)',
+    paddingVertical: 28,
+    backgroundColor: 'rgba(192, 255, 0, 0.05)',
+    borderRadius: 28,
+    borderWidth: 2,
+    borderColor: 'rgba(192, 255, 0, 0.3)',
     marginHorizontal: -4,
-    marginBottom: 28,
+    marginBottom: 32,
+    ...Platform.select({
+      web: {
+        backgroundImage: 'linear-gradient(135deg, rgba(192, 255, 0, 0.08) 0%, rgba(124, 58, 237, 0.05) 100%)',
+        backdropFilter: 'blur(20px)',
+        boxShadow: '0 8px 32px rgba(192, 255, 0, 0.15), inset 0 1px 1px rgba(192, 255, 0, 0.2)',
+      },
+      native: {
+        shadowColor: '#C0FF00',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.12,
+        shadowRadius: 16,
+        elevation: 6,
+      },
+    }),
   },
   title: {
-    fontSize: 40,
+    fontSize: 42,
     fontWeight: '900',
-    color: COLORS.text,
+    color: COLORS.accent,
     textAlign: 'center',
     marginBottom: 10,
-    letterSpacing: -1,
+    letterSpacing: -1.2,
+    textShadowColor: 'rgba(192, 255, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
   },
   subtitle: {
-    fontSize: 15,
+    fontSize: 16,
     color: COLORS.label,
     textAlign: 'center',
     fontWeight: '700',
-    letterSpacing: 0.2,
+    letterSpacing: 0.4,
+    lineHeight: 24,
   },
   card: {
-    backgroundColor: 'rgba(15, 20, 25, 0.8)',
-    borderRadius: 24,
-    padding: 24,
-    marginBottom: 20,
+    backgroundColor: 'rgba(26, 31, 46, 0.5)',
+    borderRadius: 32,
+    padding: 28,
+    marginBottom: 24,
     borderWidth: 1.5,
-    borderColor: 'rgba(0, 212, 255, 0.2)',
+    borderColor: 'rgba(192, 255, 0, 0.15)',
     ...Platform.select({
       native: {
-        shadowColor: '#00D4FF',
-        shadowOpacity: 0.25,
-        shadowRadius: 25,
+        shadowColor: '#C0FF00',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.12,
+        shadowRadius: 20,
         elevation: 12,
+      },
+      web: {
+        backdropFilter: 'blur(20px)',
+        boxShadow: '0 8px 32px rgba(192, 255, 0, 0.12), inset 0 1px 1px rgba(192, 255, 0, 0.1), 0 0 20px rgba(192, 255, 0, 0.08)',
       },
     }),
     overflow: 'hidden',
   },
   sectionTitle: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '900',
     color: COLORS.text,
-    marginBottom: 22,
+    marginBottom: 24,
     letterSpacing: 0.8,
+    textShadowColor: 'rgba(192, 255, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   label: {
     fontSize: 13,
@@ -2015,22 +2208,22 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 2,
-    borderColor: 'rgba(0, 212, 255, 0.3)',
+    borderColor: 'rgba(192, 255, 0, 0.25)',
     borderRadius: 14,
     padding: 16,
     fontSize: 16,
     color: COLORS.text,
-    backgroundColor: 'rgba(22, 29, 41, 0.6)',
-    fontWeight: '700',
+    backgroundColor: 'rgba(42, 49, 66, 0.4)',
+    fontWeight: '600',
   },
   sexToggle: {
     flexDirection: 'row',
     gap: 14,
-    backgroundColor: 'rgba(22, 29, 41, 0.4)',
+    backgroundColor: 'rgba(42, 49, 66, 0.3)',
     borderRadius: 16,
     padding: 6,
     borderWidth: 2,
-    borderColor: 'rgba(0, 212, 255, 0.15)',
+    borderColor: 'rgba(192, 255, 0, 0.15)',
   },
   sexButton: {
     flex: 1,
@@ -2064,17 +2257,23 @@ const styles = StyleSheet.create({
   toggleButton: {
     flex: 1,
     paddingVertical: 14,
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 2,
-    borderColor: 'rgba(0, 212, 255, 0.2)',
+    borderColor: 'rgba(192, 255, 0, 0.15)',
     alignItems: 'center',
-    backgroundColor: 'rgba(22, 29, 41, 0.5)',
+    backgroundColor: 'rgba(42, 49, 66, 0.5)',
     ...Platform.select({
       native: {
-        shadowColor: '#00D4FF',
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 3,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+        elevation: 1,
+      },
+      web: {
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        cursor: 'pointer',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
       },
     }),
   },
@@ -2095,19 +2294,25 @@ const styles = StyleSheet.create({
   },
   activityButton: {
     width: '48%',
-    paddingVertical: 16,
+    paddingVertical: 18,
     paddingHorizontal: 14,
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 2,
-    borderColor: 'rgba(0, 212, 255, 0.2)',
+    borderColor: 'rgba(192, 255, 0, 0.15)',
     alignItems: 'center',
-    backgroundColor: 'rgba(22, 29, 41, 0.5)',
+    backgroundColor: 'rgba(42, 49, 66, 0.5)',
     ...Platform.select({
       native: {
-        shadowColor: '#00D4FF',
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 3,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+        elevation: 1,
+      },
+      web: {
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        cursor: 'pointer',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
       },
     }),
   },
@@ -2124,19 +2329,25 @@ const styles = StyleSheet.create({
   },
   goalButton: {
     flex: 1,
-    paddingVertical: 16,
+    paddingVertical: 18,
     paddingHorizontal: 14,
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 2,
-    borderColor: 'rgba(0, 212, 255, 0.2)',
+    borderColor: 'rgba(192, 255, 0, 0.15)',
     alignItems: 'center',
-    backgroundColor: 'rgba(22, 29, 41, 0.5)',
+    backgroundColor: 'rgba(42, 49, 66, 0.5)',
     ...Platform.select({
       native: {
-        shadowColor: '#00D4FF',
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 3,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+        elevation: 1,
+      },
+      web: {
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        cursor: 'pointer',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
       },
     }),
   },
@@ -2147,27 +2358,40 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   calculateButton: {
-    marginTop: 28,
-    paddingVertical: 18,
-    borderRadius: 16,
+    marginTop: 32,
+    paddingVertical: 20,
+    paddingHorizontal: 32,
+    borderRadius: 18,
     alignItems: 'center',
-    backgroundColor: COLORS.accent,
+    justifyContent: 'center',
+    backgroundColor: '#C0FF00',
+    borderWidth: 0,
     ...Platform.select({
       native: {
-        shadowColor: '#00D4FF',
-        shadowOpacity: 0.45,
-        shadowRadius: 22,
-        elevation: 15,
+        shadowColor: '#C0FF00',
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.6,
+        shadowRadius: 24,
+        elevation: 20,
+      },
+      web: {
+        boxShadow: '0 12px 32px rgba(192, 255, 0, 0.5), 0 4px 12px rgba(192, 255, 0, 0.3)',
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        cursor: 'pointer',
+        WebkitUserSelect: 'none',
+        userSelect: 'none',
       },
     }),
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   calculateButtonText: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '900',
     letterSpacing: 0.8,
-    color: COLORS.white,
+    color: '#0A0E1A',
+    textTransform: 'uppercase',
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   resultRow: {
     flexDirection: 'row',
@@ -2201,21 +2425,24 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   calorieBox: {
-    backgroundColor: 'rgba(0, 212, 255, 0.08)',
+    backgroundColor: 'rgba(192, 255, 0, 0.08)',
     borderRadius: 20,
     padding: 28,
     alignItems: 'center',
     marginTop: 24,
     borderWidth: 2,
-    borderColor: 'rgba(0, 212, 255, 0.25)',
-    borderLeftColor: COLORS.accent,
+    borderColor: 'rgba(192, 255, 0, 0.2)',
+    borderLeftColor: '#C0FF00',
     borderLeftWidth: 6,
     ...Platform.select({
       native: {
-        shadowColor: COLORS.accent,
-        shadowOpacity: 0.3,
+        shadowColor: '#C0FF00',
+        shadowOpacity: 0.4,
         shadowRadius: 18,
-        elevation: 10,
+        elevation: 12,
+      },
+      web: {
+        boxShadow: '0 4px 18px rgba(192, 255, 0, 0.2)',
       },
     }),
   },
@@ -2246,36 +2473,49 @@ const styles = StyleSheet.create({
   },
   macroCard: {
     flex: 1,
-    backgroundColor: 'rgba(22, 29, 41, 0.5)',
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: 'rgba(42, 49, 66, 0.5)',
+    borderRadius: 18,
+    padding: 20,
     borderTopWidth: 4,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: 'rgba(0, 212, 255, 0.15)',
+    borderColor: 'rgba(192, 255, 0, 0.15)',
     ...Platform.select({
       native: {
-        shadowOpacity: 0.2,
-        shadowRadius: 14,
-        elevation: 7,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.12,
+        shadowRadius: 12,
+        elevation: 8,
+      },
+      web: {
+        backdropFilter: 'blur(10px)',
+        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.12), 0 0 12px rgba(192, 255, 0, 0.08)',
+        transition: 'all 0.3s ease-in-out',
+        cursor: 'default',
       },
     }),
   },
   macroCardIcon: {
-    fontSize: 28,
-    marginBottom: 8,
+    fontSize: 32,
+    marginBottom: 12,
+    opacity: 0.95,
   },
   macroCardLabel: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '800',
     color: COLORS.label,
-    marginBottom: 6,
+    marginBottom: 8,
+    letterSpacing: 0.4,
   },
   macroCardValue: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '900',
-    letterSpacing: -0.5,
-    color: COLORS.text,
+    letterSpacing: -0.8,
+    color: COLORS.accent,
+    textShadowColor: 'rgba(192, 255, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   macroCardUnit: {
     fontSize: 11,
@@ -2289,26 +2529,34 @@ const styles = StyleSheet.create({
     height: 280,
   },
   macroTips: {
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-    borderRadius: 16,
-    padding: 18,
+    backgroundColor: 'rgba(16, 185, 129, 0.08)',
+    borderRadius: 18,
+    padding: 20,
     borderWidth: 2,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
+    borderColor: 'rgba(16, 185, 129, 0.25)',
     ...Platform.select({
       native: {
         shadowColor: '#10B981',
-        shadowOpacity: 0.2,
-        shadowRadius: 14,
-        elevation: 7,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+        elevation: 6,
+      },
+      web: {
+        backdropFilter: 'blur(10px)',
+        boxShadow: '0 4px 16px rgba(16, 185, 129, 0.15), inset 0 1px 1px rgba(16, 185, 129, 0.2)',
       },
     }),
   },
   tipsTitle: {
-    fontSize: 14,
-    fontWeight: '800',
+    fontSize: 15,
+    fontWeight: '900',
     color: COLORS.protein,
-    marginBottom: 10,
-    letterSpacing: 0.3,
+    marginBottom: 12,
+    letterSpacing: 0.5,
+    textShadowColor: 'rgba(16, 185, 129, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   tipText: {
     fontSize: 12,
@@ -2378,17 +2626,20 @@ const styles = StyleSheet.create({
   },
   waterContainer: {
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 212, 255, 0.05)',
+    backgroundColor: 'rgba(192, 255, 0, 0.05)',
     borderRadius: 14,
     padding: 20,
     borderWidth: 1.5,
-    borderColor: 'rgba(0, 212, 255, 0.15)',
+    borderColor: 'rgba(192, 255, 0, 0.15)',
     ...Platform.select({
       native: {
-        shadowColor: '#00D4FF',
-        shadowOpacity: 0.15,
+        shadowColor: '#C0FF00',
+        shadowOpacity: 0.2,
         shadowRadius: 16,
         elevation: 8,
+      },
+      web: {
+        boxShadow: '0 4px 16px rgba(192, 255, 0, 0.1)',
       },
     }),
   },
@@ -2451,16 +2702,20 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   mealItem: {
-    backgroundColor: 'rgba(22, 29, 41, 0.5)',
+    backgroundColor: 'rgba(42, 49, 66, 0.4)',
     borderRadius: 16,
     padding: 16,
     borderWidth: 2,
-    borderColor: 'rgba(0, 212, 255, 0.15)',
+    borderColor: 'rgba(192, 255, 0, 0.15)',
     ...Platform.select({
       native: {
+        shadowColor: 'rgba(0, 0, 0, 0.1)',
         shadowOpacity: 0.15,
-        shadowRadius: 12,
-        elevation: 6,
+        shadowRadius: 10,
+        elevation: 4,
+      },
+      web: {
+        boxShadow: '0 2px 10px rgba(192, 255, 0, 0.05)',
       },
     }),
   },
@@ -2503,16 +2758,20 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   nutritionBox: {
-    backgroundColor: 'rgba(22, 29, 41, 0.5)',
+    backgroundColor: 'rgba(42, 49, 66, 0.4)',
     borderRadius: 16,
     padding: 16,
     borderWidth: 2,
-    borderColor: 'rgba(0, 212, 255, 0.15)',
+    borderColor: 'rgba(192, 255, 0, 0.15)',
     ...Platform.select({
       native: {
+        shadowColor: 'rgba(0, 0, 0, 0.1)',
         shadowOpacity: 0.15,
-        shadowRadius: 12,
-        elevation: 6,
+        shadowRadius: 10,
+        elevation: 4,
+      },
+      web: {
+        boxShadow: '0 2px 10px rgba(192, 255, 0, 0.05)',
       },
     }),
   },
@@ -2534,17 +2793,21 @@ const styles = StyleSheet.create({
   },
   tipBox: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(22, 29, 41, 0.5)',
+    backgroundColor: 'rgba(42, 49, 66, 0.4)',
     borderRadius: 16,
     padding: 16,
     borderWidth: 2,
-    borderColor: 'rgba(0, 212, 255, 0.15)',
+    borderColor: 'rgba(192, 255, 0, 0.15)',
     gap: 12,
     ...Platform.select({
       native: {
+        shadowColor: 'rgba(0, 0, 0, 0.1)',
         shadowOpacity: 0.15,
-        shadowRadius: 12,
-        elevation: 6,
+        shadowRadius: 10,
+        elevation: 4,
+      },
+      web: {
+        boxShadow: '0 2px 10px rgba(192, 255, 0, 0.05)',
       },
     }),
   },
@@ -2574,17 +2837,21 @@ const styles = StyleSheet.create({
   },
   summaryItem: {
     width: '48%',
-    backgroundColor: 'rgba(22, 29, 41, 0.5)',
+    backgroundColor: 'rgba(42, 49, 66, 0.4)',
     borderRadius: 16,
     padding: 16,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: 'rgba(0, 212, 255, 0.15)',
+    borderColor: 'rgba(192, 255, 0, 0.15)',
     ...Platform.select({
       native: {
+        shadowColor: 'rgba(0, 0, 0, 0.1)',
         shadowOpacity: 0.15,
-        shadowRadius: 12,
-        elevation: 6,
+        shadowRadius: 10,
+        elevation: 4,
+      },
+      web: {
+        boxShadow: '0 2px 10px rgba(192, 255, 0, 0.05)',
       },
     }),
   },
@@ -2609,54 +2876,78 @@ const styles = StyleSheet.create({
   bmiContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 24,
+    gap: 28,
     marginBottom: 28,
-    paddingVertical: 20,
-    paddingHorizontal: 16,
-    backgroundColor: 'rgba(0, 212, 255, 0.05)',
-    borderRadius: 18,
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+    backgroundColor: 'rgba(192, 255, 0, 0.05)',
+    borderRadius: 24,
     borderWidth: 2,
-    borderColor: 'rgba(0, 212, 255, 0.15)',
+    borderColor: 'rgba(192, 255, 0, 0.2)',
+    ...Platform.select({
+      web: {
+        backdropFilter: 'blur(10px)',
+        boxShadow: '0 8px 32px rgba(192, 255, 0, 0.15), inset 0 1px 1px rgba(192, 255, 0, 0.1)',
+      },
+      native: {
+        shadowColor: '#C0FF00',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+        elevation: 6,
+      },
+    }),
   },
   bmiCircle: {
-    width: 160,
-    height: 160,
-    borderRadius: 80,
+    width: 170,
+    height: 170,
+    borderRadius: 85,
     borderWidth: 4,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(0, 212, 255, 0.08)',
+    backgroundColor: 'rgba(192, 255, 0, 0.06)',
+    borderColor: 'rgba(192, 255, 0, 0.35)',
     ...Platform.select({
       native: {
-        shadowColor: '#00D4FF',
-        shadowOpacity: 0.4,
-        shadowRadius: 25,
-        elevation: 12,
+        shadowColor: '#C0FF00',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.6,
+        shadowRadius: 28,
+        elevation: 16,
+      },
+      web: {
+        boxShadow: '0 12px 40px rgba(192, 255, 0, 0.4), inset 0 1px 1px rgba(192, 255, 0, 0.2)',
       },
     }),
     flexShrink: 0,
   },
   bmiValue: {
-    fontSize: 48,
+    fontSize: 52,
     fontWeight: '900',
     color: COLORS.accent,
-    letterSpacing: -1,
+    letterSpacing: -1.2,
+    textShadowColor: 'rgba(192, 255, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
   },
   bmiLabel: {
     fontSize: 14,
     fontWeight: '800',
     color: COLORS.label,
     letterSpacing: 0.5,
-    marginTop: 4,
+    marginTop: 6,
   },
   bmiInfo: {
     flex: 1,
   },
   bmiCategory: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: '900',
-    marginBottom: 12,
-    letterSpacing: -0.5,
+    marginBottom: 14,
+    letterSpacing: -0.8,
+    textShadowColor: 'rgba(255, 255, 255, 0.1)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   bmiMessage: {
     fontSize: 14,
@@ -2671,18 +2962,24 @@ const styles = StyleSheet.create({
   },
   metricCard: {
     flex: 1,
-    backgroundColor: 'rgba(22, 29, 41, 0.5)',
-    borderRadius: 16,
-    padding: 18,
+    backgroundColor: 'rgba(42, 49, 66, 0.5)',
+    borderRadius: 18,
+    padding: 22,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: 'rgba(0, 212, 255, 0.15)',
+    borderColor: 'rgba(192, 255, 0, 0.15)',
     ...Platform.select({
       native: {
-        shadowColor: '#00D4FF',
+        shadowColor: '#C0FF00',
+        shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.15,
         shadowRadius: 12,
-        elevation: 6,
+        elevation: 8,
+      },
+      web: {
+        backdropFilter: 'blur(10px)',
+        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.12), 0 0 12px rgba(192, 255, 0, 0.08)',
+        transition: 'all 0.3s ease-in-out',
       },
     }),
   },
@@ -2736,9 +3033,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: 12,
     alignItems: 'center',
-    backgroundColor: 'rgba(22, 29, 41, 0.5)',
+    backgroundColor: 'rgba(42, 49, 66, 0.4)',
     borderWidth: 2,
-    borderColor: 'rgba(0, 212, 255, 0.2)',
+    borderColor: 'rgba(192, 255, 0, 0.15)',
   },
   countryButtonText: {
     fontSize: 12,
@@ -2756,9 +3053,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',
-    backgroundColor: 'rgba(22, 29, 41, 0.5)',
+    backgroundColor: 'rgba(42, 49, 66, 0.4)',
     borderWidth: 2,
-    borderColor: 'rgba(0, 212, 255, 0.2)',
+    borderColor: 'rgba(192, 255, 0, 0.15)',
   },
   mealTypeText: {
     fontSize: 12,
@@ -2770,15 +3067,25 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
-    backgroundColor: COLORS.accent,
-    borderWidth: 2,
-    borderColor: 'transparent',
+    backgroundColor: '#C0FF00',
+    borderWidth: 0,
+    ...Platform.select({
+      native: {
+        shadowColor: '#C0FF00',
+        shadowOpacity: 0.4,
+        shadowRadius: 16,
+        elevation: 12,
+      },
+      web: {
+        boxShadow: '0 4px 16px rgba(192, 255, 0, 0.3)',
+      },
+    }),
     marginBottom: 12,
   },
   trackerButtonText: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#06070C',
+    color: '#0A0E1A',
     letterSpacing: 0.3,
   },
   trackerButtonGroup: {
@@ -2787,13 +3094,13 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   foodPickerContainer: {
-    backgroundColor: 'rgba(22, 29, 41, 0.5)',
+    backgroundColor: 'rgba(42, 49, 66, 0.4)',
     borderRadius: 12,
     padding: 12,
     marginBottom: 16,
     maxHeight: 250,
     borderWidth: 2,
-    borderColor: 'rgba(0, 212, 255, 0.15)',
+    borderColor: 'rgba(192, 255, 0, 0.15)',
   },
   foodList: {
     maxHeight: 220,
@@ -2801,11 +3108,11 @@ const styles = StyleSheet.create({
   foodItem: {
     paddingVertical: 12,
     paddingHorizontal: 12,
-    backgroundColor: 'rgba(0, 212, 255, 0.08)',
+    backgroundColor: 'rgba(192, 255, 0, 0.08)',
     borderRadius: 10,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: 'rgba(0, 212, 255, 0.2)',
+    borderColor: 'rgba(192, 255, 0, 0.15)',
   },
   foodName: {
     fontSize: 13,
@@ -2819,12 +3126,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   customMealContainer: {
-    backgroundColor: 'rgba(22, 29, 41, 0.4)',
+    backgroundColor: 'rgba(42, 49, 66, 0.3)',
     borderRadius: 12,
     padding: 14,
     marginBottom: 16,
     borderWidth: 2,
-    borderColor: 'rgba(0, 212, 255, 0.1)',
+    borderColor: 'rgba(192, 255, 0, 0.1)',
   },
   dailySummary: {
     flexDirection: 'row',
@@ -2834,12 +3141,12 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     width: '48%',
-    backgroundColor: 'rgba(0, 212, 255, 0.08)',
+    backgroundColor: 'rgba(192, 255, 0, 0.08)',
     borderRadius: 14,
     padding: 14,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: 'rgba(0, 212, 255, 0.2)',
+    borderColor: 'rgba(192, 255, 0, 0.15)',
   },
   summaryLabel: {
     fontSize: 12,
@@ -2863,12 +3170,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: 'rgba(22, 29, 41, 0.5)',
+    backgroundColor: 'rgba(42, 49, 66, 0.3)',
     borderRadius: 12,
     padding: 12,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: 'rgba(0, 212, 255, 0.1)',
+    borderColor: 'rgba(192, 255, 0, 0.1)',
   },
   mealLogInfo: {
     flex: 1,
@@ -2911,7 +3218,7 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: 'rgba(15, 20, 25, 0.6)',
     borderWidth: 2,
-    borderColor: 'rgba(0, 212, 255, 0.2)',
+    borderColor: 'rgba(192, 255, 0, 0.15)',
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 14,
@@ -3007,15 +3314,21 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   loginLogo: {
-    fontSize: 80,
-    marginBottom: 12,
+    fontSize: 90,
+    marginBottom: 16,
+    textShadowColor: 'rgba(192, 255, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 4 },
+    textShadowRadius: 12,
   },
   loginAppName: {
-    fontSize: 42,
+    fontSize: 44,
     fontWeight: '900',
     color: COLORS.accent,
-    letterSpacing: -1,
-    marginBottom: 8,
+    letterSpacing: -1.2,
+    marginBottom: 10,
+    textShadowColor: 'rgba(192, 255, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
   },
   loginAppSubtitle: {
     fontSize: 16,
@@ -3026,17 +3339,22 @@ const styles = StyleSheet.create({
   loginCard: {
     width: '100%',
     maxWidth: 420,
-    backgroundColor: 'rgba(15, 20, 25, 0.95)',
-    borderRadius: 24,
-    padding: 28,
+    backgroundColor: 'rgba(15, 20, 25, 0.8)',
+    borderRadius: 28,
+    padding: 32,
     borderWidth: 2,
-    borderColor: 'rgba(0, 212, 255, 0.2)',
+    borderColor: 'rgba(192, 255, 0, 0.25)',
     ...Platform.select({
       native: {
-        shadowColor: '#00D4FF',
-        shadowOpacity: 0.3,
-        shadowRadius: 30,
-        elevation: 15,
+        shadowColor: '#C0FF00',
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.5,
+        shadowRadius: 32,
+        elevation: 20,
+      },
+      web: {
+        backdropFilter: 'blur(20px)',
+        boxShadow: '0 12px 40px rgba(192, 255, 0, 0.3), inset 0 1px 1px rgba(192, 255, 0, 0.1)',
       },
     }),
   },
@@ -3067,23 +3385,37 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   loginInput: {
-    backgroundColor: 'rgba(6, 7, 12, 0.6)',
+    backgroundColor: 'rgba(42, 49, 66, 0.5)',
     borderWidth: 2,
-    borderColor: 'rgba(0, 212, 255, 0.25)',
-    borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    borderColor: 'rgba(192, 255, 0, 0.2)',
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
     color: COLORS.label,
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
+    letterSpacing: 0.2,
+    ...Platform.select({
+      web: {
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        outline: 'none',
+        boxShadow: '0 2px 8px rgba(192, 255, 0, 0.05)',
+      },
+    }),
   },
   passwordInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(6, 7, 12, 0.6)',
+    backgroundColor: 'rgba(42, 49, 66, 0.5)',
     borderWidth: 2,
-    borderColor: 'rgba(0, 212, 255, 0.25)',
-    borderRadius: 14,
+    borderColor: 'rgba(192, 255, 0, 0.2)',
+    borderRadius: 16,
+    ...Platform.select({
+      web: {
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        boxShadow: '0 2px 8px rgba(192, 255, 0, 0.05)',
+      },
+    }),
   },
   passwordInput: {
     flex: 1,
@@ -3123,21 +3455,26 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   loginAuthButton: {
-    backgroundColor: COLORS.accent,
-    borderRadius: 14,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
+    backgroundColor: '#C0FF00',
+    borderRadius: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 14,
-    borderWidth: 2,
-    borderColor: COLORS.accent,
+    marginBottom: 16,
+    borderWidth: 0,
     ...Platform.select({
       native: {
-        shadowColor: '#00D4FF',
-        shadowOpacity: 0.3,
-        shadowRadius: 15,
-        elevation: 10,
+        shadowColor: '#C0FF00',
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.6,
+        shadowRadius: 24,
+        elevation: 18,
+      },
+      web: {
+        boxShadow: '0 12px 32px rgba(192, 255, 0, 0.5), 0 4px 12px rgba(192, 255, 0, 0.3)',
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        cursor: 'pointer',
       },
     }),
   },
@@ -3166,7 +3503,7 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: 'rgba(0, 212, 255, 0.1)',
+    backgroundColor: 'rgba(192, 255, 0, 0.1)',
   },
   dividerText: {
     fontSize: 12,
@@ -3184,11 +3521,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(22, 29, 41, 0.6)',
+    backgroundColor: 'rgba(42, 49, 66, 0.4)',
     borderRadius: 12,
     paddingVertical: 12,
     borderWidth: 2,
-    borderColor: 'rgba(0, 212, 255, 0.15)',
+    borderColor: 'rgba(192, 255, 0, 0.15)',
   },
   socialButtonEmoji: {
     fontSize: 16,
@@ -3221,7 +3558,7 @@ const styles = StyleSheet.create({
     marginTop: 24,
     paddingTop: 24,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(0, 212, 255, 0.1)',
+    borderTopColor: 'rgba(192, 255, 0, 0.1)',
   },
   benefitsTitle: {
     fontSize: 14,
