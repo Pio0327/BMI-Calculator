@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -33,6 +33,191 @@ import {
   setDoc,
   getDoc
 } from 'firebase/firestore';
+
+const { width, height } = Dimensions.get('window');
+
+// Floating Animation Component
+const FloatingElement = ({ children, delay = 0, duration = 3000 }) => {
+  const floatAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const animate = () => {
+      Animated.sequence([
+        Animated.timing(floatAnim, {
+          toValue: 1,
+          duration: duration,
+          delay: delay,
+          useNativeDriver: true,
+        }),
+        Animated.timing(floatAnim, {
+          toValue: 0,
+          duration: duration,
+          useNativeDriver: true,
+        }),
+      ]).start(() => animate());
+    };
+    animate();
+  }, [floatAnim, delay, duration]);
+
+  const translateY = floatAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -20],
+  });
+
+  return (
+    <Animated.View style={{ transform: [{ translateY }] }}>
+      {children}
+    </Animated.View>
+  );
+};
+
+// Pulsing Glow Component
+const PulsingGlow = ({ children, color = '#C0FF00', intensity = 0.6 }) => {
+  const pulseAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: false,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 0,
+          duration: 2000,
+          useNativeDriver: false,
+        }),
+      ])
+    ).start();
+  }, [pulseAnim]);
+
+  const glowOpacity = pulseAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [intensity * 0.3, intensity],
+  });
+
+  return (
+    <View style={{ position: 'relative' }}>
+      {children}
+      <Animated.View
+        style={{
+          position: 'absolute',
+          top: -10,
+          left: -10,
+          right: -10,
+          bottom: -10,
+          borderRadius: 20,
+          backgroundColor: color,
+          opacity: glowOpacity,
+          shadowColor: color,
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: 1,
+          shadowRadius: 20,
+          elevation: 20,
+        }}
+        pointerEvents="none"
+      />
+    </View>
+  );
+};
+
+// Animated Background Component
+const AnimatedBackground = () => {
+  const gradientAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.timing(gradientAnim, {
+        toValue: 1,
+        duration: 8000,
+        useNativeDriver: false,
+      })
+    ).start();
+  }, [gradientAnim]);
+
+  const backgroundColor = gradientAnim.interpolate({
+    inputRange: [0, 0.33, 0.66, 1],
+    outputRange: [
+      'rgba(192, 255, 0, 0.03)',
+      'rgba(124, 58, 237, 0.03)',
+      'rgba(0, 212, 255, 0.03)',
+      'rgba(192, 255, 0, 0.03)',
+    ],
+  });
+
+  return (
+    <Animated.View
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor,
+      }}
+    />
+  );
+};
+
+// Simple Floating Component (reduced motion)
+const SimpleFloat = ({ children, delay = 0 }) => {
+  const floatAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatAnim, {
+          toValue: 1,
+          duration: 6000,
+          delay: delay,
+          useNativeDriver: true,
+        }),
+        Animated.timing(floatAnim, {
+          toValue: 0,
+          duration: 6000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, [floatAnim, delay]);
+
+  const translateY = floatAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -8],
+  });
+
+  return (
+    <Animated.View style={{ transform: [{ translateY }] }}>
+      {children}
+    </Animated.View>
+  );
+};
+
+// Clean Glass Card Component
+const CleanGlassCard = ({ children, intensity = 0.8 }) => {
+  return (
+    <View style={styles.cleanGlassContainer}>
+      <View
+        style={[
+          styles.glassLayer,
+          {
+            backgroundColor: `rgba(255, 255, 255, ${intensity * 0.08})`,
+            ...Platform.select({
+              web: {
+                backdropFilter: 'blur(12px)',
+                border: `1px solid rgba(192, 255, 0, ${intensity * 0.15})`,
+              },
+            }),
+          },
+        ]}
+      />
+      <View style={styles.glassContent}>
+        {children}
+      </View>
+    </View>
+  );
+};
 
 const COLORS = {
   background: '#0A0E1A',
@@ -1042,31 +1227,43 @@ export default function App() {
   // ========== NAVBAR COMPONENT ==========
   const NavBar = () => {
     const navItems = [
-      { id: 'metrics', label: '📊 Metrics', icon: '📊' },
-      { id: 'tracker', label: '📅 Tracker', icon: '📅' },
-      { id: 'results', label: '📈 Results', icon: '📈' },
-      { id: 'workout', label: '💪 Workout', icon: '💪' },
-      { id: 'wellness', label: '😴 Wellness', icon: '😴' },
+      { id: 'metrics', label: '📊 Metrics', icon: '📊', color: '#C0FF00' },
+      { id: 'tracker', label: '📅 Tracker', icon: '📅', color: '#7C3AED' },
+      { id: 'results', label: '📈 Results', icon: '📈', color: '#00D4FF' },
+      { id: 'workout', label: '💪 Workout', icon: '💪', color: '#C0FF00' },
+      { id: 'wellness', label: '😴 Wellness', icon: '😴', color: '#7C3AED' },
     ];
 
     return (
       <View style={styles.navbar}>
-        <ScrollView 
-          horizontal 
+        <View style={styles.navbarGlow} />
+        <ScrollView
+          horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.navbarContent}
         >
-          {navItems.map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              style={[
-                styles.navItem,
-                activeSection === item.id && styles.navItemActive,
-              ]}
-              onPress={() => setActiveSection(item.id)}
-            >
-              <Text style={styles.navItemText}>{item.label}</Text>
-            </TouchableOpacity>
+          {navItems.map((item, index) => (
+            <FloatingElement key={item.id} delay={index * 200} duration={2500}>
+              {activeSection === item.id ? (
+                <PulsingGlow color={item.color} intensity={0.8}>
+                  <TouchableOpacity
+                    style={[styles.navItem, styles.navItemActive]}
+                    onPress={() => setActiveSection(item.id)}
+                  >
+                    <Text style={[styles.navItemText, styles.navItemTextActive]}>
+                      {item.label}
+                    </Text>
+                  </TouchableOpacity>
+                </PulsingGlow>
+              ) : (
+                <TouchableOpacity
+                  style={styles.navItem}
+                  onPress={() => setActiveSection(item.id)}
+                >
+                  <Text style={styles.navItemText}>{item.label}</Text>
+                </TouchableOpacity>
+              )}
+            </FloatingElement>
           ))}
         </ScrollView>
       </View>
@@ -1106,376 +1303,388 @@ export default function App() {
       ) : (
         /* Main App - Only shows when user is logged in */
         <View style={{ flex: 1 }}>
+          <AnimatedBackground />
+          
+          {/* Simple floating elements */}
+          <SimpleFloat delay={0}>
+            <View style={[styles.simpleFloatingOrb, { top: '10%', right: '8%', backgroundColor: 'rgba(192, 255, 0, 0.06)' }]} />
+          </SimpleFloat>
+          <SimpleFloat delay={2000}>
+            <View style={[styles.simpleFloatingOrb, { bottom: '20%', left: '5%', backgroundColor: 'rgba(124, 58, 237, 0.06)' }]} />
+          </SimpleFloat>
+
           {/* Navigation Bar */}
           <NavBar />
           
           {/* Main Content */}
           <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
             {/* Header */}
-            <View style={styles.header}>
-            <Text style={styles.title}>💪 BMI & Macro</Text>
-            <Text style={styles.subtitle}>Calculate your perfect nutrition plan</Text>
-          </View>
+            <FloatingElement delay={500} duration={3000}>
+              <View style={styles.header}>
+                <Text style={styles.title}>💪 BMI & Macro</Text>
+                <Text style={styles.subtitle}>Calculate your perfect nutrition plan</Text>
+              </View>
+            </FloatingElement>
 
-          {/* User Profile Card */}
-          <View style={[styles.card, { marginHorizontal: 16, marginBottom: 12 }]}>
-            <View style={styles.userCardHeader}>
-              <View>
-                <View style={styles.welcomeRow}>
-                  <Text style={styles.welcomeText}>👋 Welcome, {user.email}!</Text>
-                  {isAdmin && <View style={styles.adminBadge}><Text style={styles.adminBadgeText}>⚙️ ADMIN</Text></View>}
+            {/* User Profile Card */}
+            <SimpleFloat delay={500}>
+              <CleanGlassCard intensity={0.9}>
+                <View style={[styles.card, { marginHorizontal: 16, marginBottom: 12 }]}>
+                  <View style={styles.userCardHeader}>
+                    <View>
+                      <View style={styles.welcomeRow}>
+                        <Text style={styles.welcomeText}>👋 Welcome, {user.email}!</Text>
+                        {isAdmin && <View style={styles.adminBadge}><Text style={styles.adminBadgeText}>⚙️ ADMIN</Text></View>}
+                      </View>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.logoutButton}
+                      onPress={handleLogout}
+                      disabled={loading}
+                    >
+                      <Text style={styles.logoutButtonText}>🚪 Logout</Text>
+                    </TouchableOpacity>
+                  </View>
+                  {isAdmin && (
+                    <View style={styles.adminPanelCard}>
+                      <Text style={styles.adminPanelTitle}>⚙️ Admin Dashboard</Text>
+                      <View style={styles.adminInfo}>
+                        <Text style={styles.adminInfoText}>✅ Admin account active</Text>
+                        <Text style={styles.adminInfoText}>📊 Full access to all features</Text>
+                        <Text style={styles.adminInfoText}>🔧 Special admin capabilities enabled</Text>
+                      </View>
+                    </View>
+                  )}
+                  {error && (
+                    <View style={styles.errorContainer}>
+                      <Text style={styles.errorText}>{error}</Text>
+                    </View>
+                  )}
                 </View>
-              </View>
-              <TouchableOpacity
-                style={styles.logoutButton}
-                onPress={handleLogout}
-                disabled={loading}
-              >
-                <Text style={styles.logoutButtonText}>🚪 Logout</Text>
-              </TouchableOpacity>
-            </View>
-            {isAdmin && (
-              <View style={styles.adminPanelCard}>
-                <Text style={styles.adminPanelTitle}>⚙️ Admin Dashboard</Text>
-                <View style={styles.adminInfo}>
-                  <Text style={styles.adminInfoText}>✅ Admin account active</Text>
-                  <Text style={styles.adminInfoText}>📊 Full access to all features</Text>
-                  <Text style={styles.adminInfoText}>🔧 Special admin capabilities enabled</Text>
-                </View>
-              </View>
-            )}
-            {error && (
-              <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>{error}</Text>
-              </View>
-            )}
-          </View>
+              </CleanGlassCard>
+            </SimpleFloat>
 
           {/* Metrics Section */}
           {activeSection === 'metrics' && (
-          <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Your Metrics</Text>
+            <ScrollView style={{flex: 1}} contentContainerStyle={{paddingBottom: 20}}>
+              <View style={styles.card}>
+                <Text style={styles.sectionTitle}>Your Metrics</Text>
 
-          {error ? (
-            <View style={styles.errorMessage}>
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          ) : null}
-
-          <View style={styles.row}>
-            <View style={styles.halfField}>
-              <Text style={styles.label}>Age (years)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="25"
-                placeholderTextColor={COLORS.textSecondary}
-                keyboardType="number-pad"
-                value={age}
-                onChangeText={setAge}
-              />
-            </View>
-            <View style={styles.halfField}>
-              <Text style={styles.label}>Sex</Text>
-              <View style={styles.sexToggle}>
-                <TouchableOpacity
-                  style={[
-                    styles.sexButton,
-                    sex === 'Male' && {
-                      backgroundColor: COLORS.accent,
-                      borderColor: COLORS.accent,
-                      shadowColor: COLORS.accent,
-                      shadowOpacity: 0.3,
-                      elevation: 4,
-                    },
-                  ]}
-                  onPress={() => setSex('Male')}
-                >
-                  <Text
-                    style={[
-                      styles.sexButtonText,
-                      sex === 'Male' && { color: '#06070C', fontWeight: '900' },
-                    ]}
-                  >
-                    ♂ Male
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.sexButton,
-                    sex === 'Female' && {
-                      backgroundColor: COLORS.accent,
-                      borderColor: COLORS.accent,
-                      shadowColor: COLORS.accent,
-                      shadowOpacity: 0.3,
-                      elevation: 4,
-                    },
-                  ]}
-                  onPress={() => setSex('Female')}
-                >
-                  <Text
-                    style={[
-                      styles.sexButtonText,
-                      sex === 'Female' && { color: '#06070C', fontWeight: '900' },
-                    ]}
-                  >
-                    ♀ Female
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.row}>
-            <View style={styles.halfField}>
-              <Text style={styles.label}>Height (cm)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="175"
-                placeholderTextColor={COLORS.textSecondary}
-                keyboardType="number-pad"
-                value={height}
-                onChangeText={setHeight}
-              />
-            </View>
-            <View style={styles.halfField}>
-              <Text style={styles.label}>Weight (kg)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="75"
-                placeholderTextColor={COLORS.textSecondary}
-                keyboardType="number-pad"
-                value={weight}
-                onChangeText={setWeight}
-              />
-            </View>
-          </View>
-
-          <Text style={styles.label}>Activity Level</Text>
-          <View style={styles.activityGrid}>
-            {Object.keys(ActivityMultipliers).map((level) => (
-              <TouchableOpacity
-                key={level}
-                style={[
-                  styles.activityButton,
-                  activityLevel === level && {
-                    backgroundColor: COLORS.accent,
-                    borderColor: COLORS.accent,
-                    shadowColor: COLORS.accent,
-                    shadowOpacity: 0.3,
-                    elevation: 4,
-                  },
-                ]}
-                onPress={() => setActivityLevel(level)}
-              >
-                <Text
-                  style={[
-                    styles.activityText,
-                    activityLevel === level && { color: '#06070C', fontWeight: '900' },
-                  ]}
-                >
-                  {level}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <Text style={styles.label}>Your Goal</Text>
-          <View style={styles.goalGroup}>
-            {['Lose weight', 'Maintain', 'Gain muscle'].map((goalOption) => (
-              <TouchableOpacity
-                key={goalOption}
-                style={[
-                  styles.goalButton,
-                  goal === goalOption && {
-                    backgroundColor: COLORS.accent,
-                    borderColor: COLORS.accent,
-                    shadowColor: COLORS.accent,
-                    shadowOpacity: 0.3,
-                    elevation: 4,
-                  },
-                ]}
-                onPress={() => setGoal(goalOption)}
-              >
-                <Text
-                  style={[
-                    styles.goalButtonText,
-                    goal === goalOption && { color: '#06070C', fontWeight: '900' },
-                  ]}
-                >
-                  {goalOption === 'Lose weight' ? '📉 Lose' : goalOption === 'Maintain' ? '⚖️ Maintain' : '🎯 Gain'}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <TouchableOpacity
-            style={[styles.calculateButton, { backgroundColor: COLORS.accent }]}
-            onPress={handleCalculate}
-          >
-            <Text style={styles.calculateButtonText}>📊 Calculate Results</Text>
-          </TouchableOpacity>
-        </View>
-          )}
-
-        {/* Tracker Section */}
-        {activeSection === 'tracker' && (
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>📅 Daily Tracker</Text>
-
-          <View style={styles.countryContainer}>
-            <Text style={styles.label}>🌍 Country/Cuisine</Text>
-            <View style={styles.countryGrid}>
-              {Object.keys(FoodsByCountry).map((c) => (
-                <TouchableOpacity
-                  key={c}
-                  style={[styles.countryButton, country === c && { backgroundColor: COLORS.accent, borderColor: COLORS.accent }]}
-                  onPress={() => setCountry(c)}
-                >
-                  <Text style={[styles.countryButtonText, country === c && { color: '#06070C', fontWeight: '900' }]}>{c}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          <View style={styles.trackerControls}>
-            <TouchableOpacity
-              style={[styles.mealTypeButton, mealType === 'breakfast' && { backgroundColor: COLORS.accent }]}
-              onPress={() => setMealType('breakfast')}
-            >
-              <Text style={[styles.mealTypeText, mealType === 'breakfast' && { color: '#06070C' }]}>🌅 Breakfast</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.mealTypeButton, mealType === 'lunch' && { backgroundColor: COLORS.accent }]}
-              onPress={() => setMealType('lunch')}
-            >
-              <Text style={[styles.mealTypeText, mealType === 'lunch' && { color: '#06070C' }]}>🍽️ Lunch</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.mealTypeButton, mealType === 'snack' && { backgroundColor: COLORS.accent }]}
-              onPress={() => setMealType('snack')}
-            >
-              <Text style={[styles.mealTypeText, mealType === 'snack' && { color: '#06070C' }]}>🍎 Snack</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.mealTypeButton, mealType === 'dinner' && { backgroundColor: COLORS.accent }]}
-              onPress={() => setMealType('dinner')}
-            >
-              <Text style={[styles.mealTypeText, mealType === 'dinner' && { color: '#06070C' }]}>🍽️ Dinner</Text>
-            </TouchableOpacity>
-          </View>
-
-          <TouchableOpacity
-            style={[styles.trackerButton, { marginBottom: 12 }]}
-            onPress={() => setShowFoodPicker(!showFoodPicker)}
-          >
-            <Text style={styles.trackerButtonText}>+ Select from Database</Text>
-          </TouchableOpacity>
-
-          {showFoodPicker && (
-            <View style={styles.foodPickerContainer}>
-              <ScrollView style={styles.foodList} horizontal={false} nestedScrollEnabled>
-                {FoodsByCountry[country][mealType].map((food) => (
-                  <TouchableOpacity
-                    key={food.name}
-                    style={styles.foodItem}
-                    onPress={() => addMeal(food, mealType)}
-                  >
-                    <View>
-                      <Text style={styles.foodName}>{food.name}</Text>
-                      <Text style={styles.foodInfo}>{food.calories} cal | P: {food.protein}g C: {food.carbs}g F: {food.fat}g</Text>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          )}
-
-          <View style={styles.customMealContainer}>
-            <Text style={styles.label}>Or Add Custom Food</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Food name..."
-              placeholderTextColor={COLORS.textSecondary}
-              value={customFoodName}
-              onChangeText={setCustomFoodName}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Calories..."
-              placeholderTextColor={COLORS.textSecondary}
-              keyboardType="number-pad"
-              value={customFoodCalories}
-              onChangeText={setCustomFoodCalories}
-            />
-            <TouchableOpacity
-              style={[styles.trackerButton, { backgroundColor: COLORS.success }]}
-              onPress={addCustomMeal}
-            >
-              <Text style={styles.trackerButtonText}>Add Custom Food</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Daily Summary */}
-          {dailyMeals.length > 0 && (
-            <>
-              <Text style={[styles.label, { marginTop: 24 }]}>Today's Summary</Text>
-              <View style={styles.dailySummary}>
-                <View style={styles.summaryCard}>
-                  <Text style={styles.summaryLabel}>Total Calories</Text>
-                  <Text style={styles.summaryValue}>{calculateDailyTotals().calories}</Text>
-                  <Text style={styles.summaryUnit}>kcal</Text>
-                </View>
-                <View style={styles.summaryCard}>
-                  <Text style={styles.summaryLabel}>Protein</Text>
-                  <Text style={styles.summaryValue}>{calculateDailyTotals().protein}</Text>
-                  <Text style={styles.summaryUnit}>g</Text>
-                </View>
-                <View style={styles.summaryCard}>
-                  <Text style={styles.summaryLabel}>Carbs</Text>
-                  <Text style={styles.summaryValue}>{calculateDailyTotals().carbs}</Text>
-                  <Text style={styles.summaryUnit}>g</Text>
-                </View>
-                <View style={styles.summaryCard}>
-                  <Text style={styles.summaryLabel}>Fat</Text>
-                  <Text style={styles.summaryValue}>{calculateDailyTotals().fat}</Text>
-                  <Text style={styles.summaryUnit}>g</Text>
-                </View>
-              </View>
-
-              <Text style={[styles.label, { marginTop: 20 }]}>Logged Meals</Text>
-              {dailyMeals.map((meal) => (
-                <View key={meal.id} style={styles.mealLog}>
-                  <View style={styles.mealLogInfo}>
-                    <Text style={styles.mealLogName}>{meal.name}</Text>
-                    <Text style={styles.mealLogDetail}>{meal.calories} cal | P: {meal.protein}g C: {meal.carbs}g F: {meal.fat}g</Text>
+                {error ? (
+                  <View style={styles.errorMessage}>
+                    <Text style={styles.errorText}>{error}</Text>
                   </View>
-                  <TouchableOpacity
-                    onPress={() => removeMeal(meal.id)}
-                    style={styles.removeButton}
-                  >
-                    <Text style={styles.removeButtonText}>✕</Text>
-                  </TouchableOpacity>
-                </View>
-              ))}
+                ) : null}
 
-              <View style={styles.trackerButtonGroup}>
+                <View style={styles.row}>
+                  <View style={styles.halfField}>
+                    <Text style={styles.label}>Age (years)</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="25"
+                      placeholderTextColor={COLORS.textSecondary}
+                      keyboardType="number-pad"
+                      value={age}
+                      onChangeText={setAge}
+                    />
+                  </View>
+                  <View style={styles.halfField}>
+                    <Text style={styles.label}>Sex</Text>
+                    <View style={styles.sexToggle}>
+                      <TouchableOpacity
+                        style={[
+                          styles.sexButton,
+                          sex === 'Male' && {
+                            backgroundColor: COLORS.accent,
+                            borderColor: COLORS.accent,
+                            shadowColor: COLORS.accent,
+                            shadowOpacity: 0.3,
+                            elevation: 4,
+                          },
+                        ]}
+                        onPress={() => setSex('Male')}
+                      >
+                        <Text
+                          style={[
+                            styles.sexButtonText,
+                            sex === 'Male' && { color: '#06070C', fontWeight: '900' },
+                          ]}
+                        >
+                          ♂ Male
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[
+                          styles.sexButton,
+                          sex === 'Female' && {
+                            backgroundColor: COLORS.accent,
+                            borderColor: COLORS.accent,
+                            shadowColor: COLORS.accent,
+                            shadowOpacity: 0.3,
+                            elevation: 4,
+                          },
+                        ]}
+                        onPress={() => setSex('Female')}
+                      >
+                        <Text
+                          style={[
+                            styles.sexButtonText,
+                            sex === 'Female' && { color: '#06070C', fontWeight: '900' },
+                          ]}
+                        >
+                          ♀ Female
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.row}>
+                  <View style={styles.halfField}>
+                    <Text style={styles.label}>Height (cm)</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="175"
+                      placeholderTextColor={COLORS.textSecondary}
+                      keyboardType="number-pad"
+                      value={height}
+                      onChangeText={setHeight}
+                    />
+                  </View>
+                  <View style={styles.halfField}>
+                    <Text style={styles.label}>Weight (kg)</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="75"
+                      placeholderTextColor={COLORS.textSecondary}
+                      keyboardType="number-pad"
+                      value={weight}
+                      onChangeText={setWeight}
+                    />
+                  </View>
+                </View>
+
+                <Text style={styles.label}>Activity Level</Text>
+                <View style={styles.activityGrid}>
+                  {Object.keys(ActivityMultipliers).map((level) => (
+                    <TouchableOpacity
+                      key={level}
+                      style={[
+                        styles.activityButton,
+                        activityLevel === level && {
+                          backgroundColor: COLORS.accent,
+                          borderColor: COLORS.accent,
+                          shadowColor: COLORS.accent,
+                          shadowOpacity: 0.3,
+                          elevation: 4,
+                        },
+                      ]}
+                      onPress={() => setActivityLevel(level)}
+                    >
+                      <Text
+                        style={[
+                          styles.activityText,
+                          activityLevel === level && { color: '#06070C', fontWeight: '900' },
+                        ]}
+                      >
+                        {level}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <Text style={styles.label}>Your Goal</Text>
+                <View style={styles.goalGroup}>
+                  {['Lose weight', 'Maintain', 'Gain muscle'].map((goalOption) => (
+                    <TouchableOpacity
+                      key={goalOption}
+                      style={[
+                        styles.goalButton,
+                        goal === goalOption && {
+                          backgroundColor: COLORS.accent,
+                          borderColor: COLORS.accent,
+                          shadowColor: COLORS.accent,
+                          shadowOpacity: 0.3,
+                          elevation: 4,
+                        },
+                      ]}
+                      onPress={() => setGoal(goalOption)}
+                    >
+                      <Text
+                        style={[
+                          styles.goalButtonText,
+                          goal === goalOption && { color: '#06070C', fontWeight: '900' },
+                        ]}
+                      >
+                        {goalOption === 'Lose weight' ? '📉 Lose' : goalOption === 'Maintain' ? '⚖️ Maintain' : '🎯 Gain'}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
                 <TouchableOpacity
-                  style={[styles.trackerButton, { backgroundColor: COLORS.success }]}
-                  onPress={saveDailyRecord}
+                  style={[styles.calculateButton, { backgroundColor: COLORS.accent }]}
+                  onPress={handleCalculate}
                 >
-                  <Text style={styles.trackerButtonText}>💾 Save Daily Record</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.trackerButton, { backgroundColor: '#EF4444' }]}
-                  onPress={resetDaily}
-                >
-                  <Text style={styles.trackerButtonText}>🔄 Reset</Text>
+                  <Text style={styles.calculateButtonText}>📊 Calculate Results</Text>
                 </TouchableOpacity>
               </View>
-            </>
+
+              <View style={styles.card}>
+                <Text style={styles.label}>🌍 Country/Cuisine</Text>
+                <View style={styles.countryGrid}>
+                  {Object.keys(FoodsByCountry).map((c) => (
+                    <TouchableOpacity
+                      key={c}
+                      style={[styles.countryButton, country === c && { backgroundColor: COLORS.accent, borderColor: COLORS.accent }]}
+                      onPress={() => setCountry(c)}
+                    >
+                      <Text style={[styles.countryButtonText, country === c && { color: '#06070C', fontWeight: '900' }]}>{c}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.card}>
+                <View style={styles.trackerControls}>
+                  <TouchableOpacity
+                    style={[styles.mealTypeButton, mealType === 'breakfast' && { backgroundColor: COLORS.accent }]}
+                    onPress={() => setMealType('breakfast')}
+                  >
+                    <Text style={[styles.mealTypeText, mealType === 'breakfast' && { color: '#06070C' }]}>🌅 Breakfast</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.mealTypeButton, mealType === 'lunch' && { backgroundColor: COLORS.accent }]}
+                    onPress={() => setMealType('lunch')}
+                  >
+                    <Text style={[styles.mealTypeText, mealType === 'lunch' && { color: '#06070C' }]}>🍽️ Lunch</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.mealTypeButton, mealType === 'snack' && { backgroundColor: COLORS.accent }]}
+                    onPress={() => setMealType('snack')}
+                  >
+                    <Text style={[styles.mealTypeText, mealType === 'snack' && { color: '#06070C' }]}>🍎 Snack</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.mealTypeButton, mealType === 'dinner' && { backgroundColor: COLORS.accent }]}
+                    onPress={() => setMealType('dinner')}
+                  >
+                    <Text style={[styles.mealTypeText, mealType === 'dinner' && { color: '#06070C' }]}>🍽️ Dinner</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.trackerButton, { marginBottom: 12 }]}
+                  onPress={() => setShowFoodPicker(!showFoodPicker)}
+                >
+                  <Text style={styles.trackerButtonText}>+ Select from Database</Text>
+                </TouchableOpacity>
+
+                {showFoodPicker && (
+                  <View style={styles.foodPickerContainer}>
+                    <ScrollView style={styles.foodList} horizontal={false} nestedScrollEnabled>
+                      {FoodsByCountry[country][mealType].map((food) => (
+                        <TouchableOpacity
+                          key={food.name}
+                          style={styles.foodItem}
+                          onPress={() => addMeal(food, mealType)}
+                        >
+                          <View>
+                            <Text style={styles.foodName}>{food.name}</Text>
+                            <Text style={styles.foodInfo}>{food.calories} cal | P: {food.protein}g C: {food.carbs}g F: {food.fat}g</Text>
+                          </View>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+
+                <View style={styles.customMealContainer}>
+                  <Text style={styles.label}>Or Add Custom Food</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Food name..."
+                    placeholderTextColor={COLORS.textSecondary}
+                    value={customFoodName}
+                    onChangeText={setCustomFoodName}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Calories..."
+                    placeholderTextColor={COLORS.textSecondary}
+                    keyboardType="number-pad"
+                    value={customFoodCalories}
+                    onChangeText={setCustomFoodCalories}
+                  />
+                  <TouchableOpacity
+                    style={[styles.trackerButton, { backgroundColor: COLORS.success }]}
+                    onPress={addCustomMeal}
+                  >
+                    <Text style={styles.trackerButtonText}>Add Custom Food</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {dailyMeals.length > 0 && (
+                  <>
+                    <Text style={[styles.label, { marginTop: 24 }]}>Today's Summary</Text>
+                    <View style={styles.dailySummary}>
+                      <View style={styles.summaryCard}>
+                        <Text style={styles.summaryLabel}>Total Calories</Text>
+                        <Text style={styles.summaryValue}>{calculateDailyTotals().calories}</Text>
+                        <Text style={styles.summaryUnit}>kcal</Text>
+                      </View>
+                      <View style={styles.summaryCard}>
+                        <Text style={styles.summaryLabel}>Protein</Text>
+                        <Text style={styles.summaryValue}>{calculateDailyTotals().protein}</Text>
+                        <Text style={styles.summaryUnit}>g</Text>
+                      </View>
+                      <View style={styles.summaryCard}>
+                        <Text style={styles.summaryLabel}>Carbs</Text>
+                        <Text style={styles.summaryValue}>{calculateDailyTotals().carbs}</Text>
+                        <Text style={styles.summaryUnit}>g</Text>
+                      </View>
+                      <View style={styles.summaryCard}>
+                        <Text style={styles.summaryLabel}>Fat</Text>
+                        <Text style={styles.summaryValue}>{calculateDailyTotals().fat}</Text>
+                        <Text style={styles.summaryUnit}>g</Text>
+                      </View>
+                    </View>
+
+                    <Text style={[styles.label, { marginTop: 20 }]}>Logged Meals</Text>
+                    {dailyMeals.map((meal) => (
+                      <View key={meal.id} style={styles.mealLog}>
+                        <View style={styles.mealLogInfo}>
+                          <Text style={styles.mealLogName}>{meal.name}</Text>
+                          <Text style={styles.mealLogDetail}>{meal.calories} cal | P: {meal.protein}g C: {meal.carbs}g F: {meal.fat}g</Text>
+                        </View>
+                        <TouchableOpacity
+                          onPress={() => removeMeal(meal.id)}
+                          style={styles.removeButton}
+                        >
+                          <Text style={styles.removeButtonText}>✕</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+
+                    <View style={styles.trackerButtonGroup}>
+                      <TouchableOpacity
+                        style={[styles.trackerButton, { backgroundColor: COLORS.success }]}
+                        onPress={saveDailyRecord}
+                      >
+                        <Text style={styles.trackerButtonText}>💾 Save Daily Record</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.trackerButton, { backgroundColor: '#EF4444' }]}
+                        onPress={resetDaily}
+                      >
+                        <Text style={styles.trackerButtonText}>🔄 Reset</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </>
+                )}
+              </View>
+            </ScrollView>
           )}
-        </View>
-        )}
 
         {/* Results Section */}
         {activeSection === 'results' && results && (
@@ -1714,8 +1923,8 @@ export default function App() {
         )}
 
         <View style={{ height: 30 }} />
-          </ScrollView>
-        </View>
+        </ScrollView>  
+      </View>
       )}
     </SafeAreaView>
   );
@@ -1749,254 +1958,273 @@ function LoginScreen({
   onForgotPassword,
 }) {
   return (
-    <ScrollView contentContainerStyle={styles.loginContainer} showsVerticalScrollIndicator={false}>
-      {/* Gradient Background Container */}
-      <View style={styles.loginGradientBg}>
+    <View style={styles.loginContainer}>
+      <AnimatedBackground />
+      
+      {/* Simple floating elements */}
+      <SimpleFloat delay={0}>
+        <View style={[styles.simpleFloatingOrb, { top: '12%', left: '8%', backgroundColor: 'rgba(192, 255, 0, 0.05)' }]} />
+      </SimpleFloat>
+      <SimpleFloat delay={1500}>
+        <View style={[styles.simpleFloatingOrb, { bottom: '18%', right: '10%', backgroundColor: 'rgba(124, 58, 237, 0.05)' }]} />
+      </SimpleFloat>
+
+      <ScrollView contentContainerStyle={styles.loginScrollContainer} showsVerticalScrollIndicator={false}>
         {/* Logo/Branding */}
-        <View style={styles.loginLogoSection}>
-          <Text style={styles.loginLogo}>💪</Text>
-          <Text style={styles.loginAppName}>BMI & Macro</Text>
-          <Text style={styles.loginAppSubtitle}>Your Personal Nutrition Coach</Text>
-        </View>
+        <FloatingElement delay={500} duration={3000}>
+          <View style={styles.loginLogoSection}>
+            <PulsingGlow color="#C0FF00" intensity={0.4}>
+              <Text style={styles.loginLogo}>💪</Text>
+            </PulsingGlow>
+            <Text style={styles.loginAppName}>BMI & Macro</Text>
+            <Text style={styles.loginAppSubtitle}>Your Personal Nutrition Coach</Text>
+          </View>
+        </FloatingElement>
 
         {/* Main Login Card */}
-        <View style={styles.loginCard}>
-          {!isForgotPassword ? (
-            <>
-              {/* Welcome Message */}
-              <View style={styles.welcomeSection}>
-                <Text style={styles.loginTitle}>
-                  {isSignUp ? '🎯 Join Our Community' : '👋 Welcome Back'}
-                </Text>
-                <Text style={styles.loginDescription}>
-                  {isSignUp
-                    ? 'Create an account to track your nutrition and fitness progress across devices.'
-                    : 'Sign in to continue your fitness journey and access your saved data.'}
-                </Text>
-              </View>
+        <SimpleFloat delay={500}>
+          <CleanGlassCard intensity={0.9}>
+            <View style={styles.loginCard}>
+            {!isForgotPassword ? (
+              <>
+                {/* Welcome Message */}
+                <View style={styles.welcomeSection}>
+                  <Text style={styles.loginTitle}>
+                    {isSignUp ? '🎯 Join Our Community' : '👋 Welcome Back'}
+                  </Text>
+                  <Text style={styles.loginDescription}>
+                    {isSignUp
+                      ? 'Create an account to track your nutrition and fitness progress across devices.'
+                      : 'Sign in to continue your fitness journey and access your saved data.'}
+                  </Text>
+                </View>
 
-              {/* Email Input (or Email/Username Input for login) */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>
-                  {isSignUp ? '📧 Email Address' : '📧 Email or Username'}
-                </Text>
-                <TextInput
-                  style={styles.loginInput}
-                  placeholder={isSignUp ? 'your@email.com' : 'email@example.com or username'}
-                  placeholderTextColor="#A0AEC0"
-                  keyboardType={isSignUp ? 'email-address' : 'default'}
-                  autoCapitalize="none"
-                  value={email}
-                  onChangeText={setEmail}
-                  editable={!loading}
-                />
-              </View>
-
-              {/* Username Input (only for signup) */}
-              {isSignUp && (
+                {/* Email Input (or Email/Username Input for login) */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>👤 Username</Text>
+                  <Text style={styles.inputLabel}>
+                    {isSignUp ? '📧 Email Address' : '📧 Email or Username'}
+                  </Text>
                   <TextInput
                     style={styles.loginInput}
-                    placeholder="myusername"
+                    placeholder={isSignUp ? 'your@email.com' : 'email@example.com or username'}
                     placeholderTextColor="#A0AEC0"
+                    keyboardType={isSignUp ? 'email-address' : 'default'}
                     autoCapitalize="none"
-                    value={username}
-                    onChangeText={setUsername}
+                    value={email}
+                    onChangeText={setEmail}
                     editable={!loading}
                   />
-                  <Text style={styles.usernameHint}>3-20 characters, letters, numbers, dots, underscores</Text>
                 </View>
-              )}
 
-              {/* Password Input with Show/Hide Toggle */}
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>🔒 Password</Text>
-                <View style={styles.passwordInputContainer}>
-                  <TextInput
-                    style={styles.passwordInput}
-                    placeholder="Enter your password"
-                    placeholderTextColor="#A0AEC0"
-                    secureTextEntry={!showPassword}
-                    value={password}
-                    onChangeText={setPassword}
-                    editable={!loading}
-                  />
-                  <TouchableOpacity
-                    onPress={() => setShowPassword(!showPassword)}
-                    disabled={loading}
-                    style={styles.eyeButton}
-                  >
-                    <Text style={styles.eyeIcon}>{showPassword ? '👁️' : '👁️‍🗨️'}</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
+                {/* Username Input (only for signup) */}
+                {isSignUp && (
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>👤 Username</Text>
+                    <TextInput
+                      style={styles.loginInput}
+                      placeholder="myusername"
+                      placeholderTextColor="#A0AEC0"
+                      autoCapitalize="none"
+                      value={username}
+                      onChangeText={setUsername}
+                      editable={!loading}
+                    />
+                    <Text style={styles.usernameHint}>3-20 characters, letters, numbers, dots, underscores</Text>
+                  </View>
+                )}
 
-              {/* Confirm Password Input (only for signup) */}
-              {isSignUp && (
+                {/* Password Input with Show/Hide Toggle */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>✓ Confirm Password</Text>
+                  <Text style={styles.inputLabel}>🔒 Password</Text>
                   <View style={styles.passwordInputContainer}>
                     <TextInput
                       style={styles.passwordInput}
-                      placeholder="Confirm your password"
+                      placeholder="Enter your password"
                       placeholderTextColor="#A0AEC0"
-                      secureTextEntry={!showConfirmPassword}
-                      value={confirmPassword}
-                      onChangeText={setConfirmPassword}
+                      secureTextEntry={!showPassword}
+                      value={password}
+                      onChangeText={setPassword}
                       editable={!loading}
                     />
                     <TouchableOpacity
-                      onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                      onPress={() => setShowPassword(!showPassword)}
                       disabled={loading}
                       style={styles.eyeButton}
                     >
-                      <Text style={styles.eyeIcon}>{showConfirmPassword ? '👁️' : '👁️‍🗨️'}</Text>
+                      <Text style={styles.eyeIcon}>{showPassword ? '👁️' : '👁️‍🗨️'}</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
-              )}
 
-              {/* Error/Success Message */}
-              {error && (
-                <View style={styles.loginErrorContainer}>
-                  <Text style={styles.loginErrorText}>{error}</Text>
+                {/* Confirm Password Input (only for signup) */}
+                {isSignUp && (
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>✓ Confirm Password</Text>
+                    <View style={styles.passwordInputContainer}>
+                      <TextInput
+                        style={styles.passwordInput}
+                        placeholder="Confirm your password"
+                        placeholderTextColor="#A0AEC0"
+                        secureTextEntry={!showConfirmPassword}
+                        value={confirmPassword}
+                        onChangeText={setConfirmPassword}
+                        editable={!loading}
+                      />
+                      <TouchableOpacity
+                        onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                        disabled={loading}
+                        style={styles.eyeButton}
+                      >
+                        <Text style={styles.eyeIcon}>{showConfirmPassword ? '👁️' : '👁️‍🗨️'}</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+
+                {/* Error/Success Message */}
+                {error && (
+                  <View style={styles.loginErrorContainer}>
+                    <Text style={styles.loginErrorText}>{error}</Text>
+                  </View>
+                )}
+
+                {/* Main Auth Button */}
+                <PulsingGlow color="#C0FF00" intensity={loading ? 0.8 : 0.4}>
+                  <TouchableOpacity
+                    style={[styles.loginAuthButton, loading && styles.loginAuthButtonDisabled]}
+                    onPress={isSignUp ? onSignUp : onLogin}
+                    disabled={loading}
+                  >
+                    <Text style={styles.loginAuthButtonText}>
+                      {loading ? '⏳ Please wait...' : (isSignUp ? '✨ Create Account' : '🚀 Sign In')}
+                    </Text>
+                  </TouchableOpacity>
+                </PulsingGlow>
+
+                {/* Forgot Password Link (only on login mode) */}
+                {!isSignUp && (
+                  <TouchableOpacity onPress={() => {
+                    setIsForgotPassword(true);
+                    setShowPassword(false);
+                    setShowConfirmPassword(false);
+                  }}>
+                    <Text style={styles.forgotPasswordLink}>🔑 Forgot your password?</Text>
+                  </TouchableOpacity>
+                )}
+
+                {/* Social Login Buttons */}
+                <View style={styles.dividerContainer}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.dividerText}>Or continue with</Text>
+                  <View style={styles.dividerLine} />
                 </View>
-              )}
 
-              {/* Main Auth Button */}
-              <TouchableOpacity
-                style={[styles.loginAuthButton, loading && styles.loginAuthButtonDisabled]}
-                onPress={isSignUp ? onSignUp : onLogin}
-                disabled={loading}
-              >
-                <Text style={styles.loginAuthButtonText}>
-                  {loading ? '⏳ Please wait...' : (isSignUp ? '✨ Create Account' : '🚀 Sign In')}
+                <View style={styles.socialButtonsRow}>
+                  <TouchableOpacity style={styles.socialButton} disabled={loading}>
+                    <Text style={styles.socialButtonEmoji}>🔴</Text>
+                    <Text style={styles.socialButtonText}>Google</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.socialButton} disabled={loading}>
+                    <Text style={styles.socialButtonEmoji}>🍎</Text>
+                    <Text style={styles.socialButtonText}>Apple</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Toggle Sign Up / Login */}
+                <View style={styles.toggleContainer}>
+                  <Text style={styles.toggleQuestion}>
+                    {isSignUp ? '✅ Already have an account? ' : "📝 Don't have an account? "}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setIsSignUp(!isSignUp);
+                      setError('');
+                      setEmail('');
+                      setUsername('');
+                      setPassword('');
+                      setConfirmPassword('');
+                      setShowPassword(false);
+                      setShowConfirmPassword(false);
+                    }}
+                  >
+                    <Text style={styles.toggleLink}>
+                      {isSignUp ? 'Sign In' : 'Sign Up'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Sign Up Benefits */}
+                {isSignUp && (
+                  <View style={styles.benefitsContainer}>
+                    <Text style={styles.benefitsTitle}>Why Create an Account?</Text>
+                    <View style={styles.benefitItem}>
+                      <Text style={styles.benefitIcon}>☁️</Text>
+                      <Text style={styles.benefitText}>Cloud Sync - Access your data anywhere</Text>
+                    </View>
+                    <View style={styles.benefitItem}>
+                      <Text style={styles.benefitIcon}>📊</Text>
+                      <Text style={styles.benefitText}>Track Progress - Weekly reports</Text>
+                    </View>
+                    <View style={styles.benefitItem}>
+                      <Text style={styles.benefitIcon}>🔄</Text>
+                      <Text style={styles.benefitText}>Multi-Device - Use on phone & web</Text>
+                    </View>
+                  </View>
+                )}
+
+
+              </>
+            ) : (
+              /* Forgot Password Screen */
+              <>
+                <Text style={styles.loginTitle}>🔐 Reset Password</Text>
+                <Text style={styles.loginDescription}>
+                  Enter your email address and we'll send you a link to reset your password.
                 </Text>
-              </TouchableOpacity>
 
-              {/* Forgot Password Link (only on login mode) */}
-              {!isSignUp && (
-                <TouchableOpacity onPress={() => {
-                  setIsForgotPassword(true);
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>📧 Email Address</Text>
+                  <TextInput
+                    style={styles.loginInput}
+                    placeholder="your@email.com"
+                    placeholderTextColor="#A0AEC0"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    value={forgotEmail}
+                    onChangeText={setForgotEmail}
+                    editable={!loading}
+                  />
+                </View>
+
+                {error && (
+                  <View style={styles.loginErrorContainer}>
+                    <Text style={styles.loginErrorText}>{error}</Text>
+                  </View>
+                )}
+
+                <TouchableOpacity
+                  style={[styles.loginAuthButton, loading && styles.loginAuthButtonDisabled]}
+                  onPress={onForgotPassword}
+                  disabled={loading}
+                >
+                  <Text style={styles.loginAuthButtonText}>
+                    {loading ? '⏳ Sending email...' : '📧 Send Reset Link'}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity onPress={() => { 
+                  setIsForgotPassword(false); 
+                  setError('');
                   setShowPassword(false);
                   setShowConfirmPassword(false);
                 }}>
-                  <Text style={styles.forgotPasswordLink}>🔑 Forgot your password?</Text>
+                  <Text style={styles.backLink}>← Back to Login</Text>
                 </TouchableOpacity>
-              )}
-
-              {/* Social Login Buttons */}
-              <View style={styles.dividerContainer}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>Or continue with</Text>
-                <View style={styles.dividerLine} />
-              </View>
-
-              <View style={styles.socialButtonsRow}>
-                <TouchableOpacity style={styles.socialButton} disabled={loading}>
-                  <Text style={styles.socialButtonEmoji}>🔴</Text>
-                  <Text style={styles.socialButtonText}>Google</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.socialButton} disabled={loading}>
-                  <Text style={styles.socialButtonEmoji}>🍎</Text>
-                  <Text style={styles.socialButtonText}>Apple</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Toggle Sign Up / Login */}
-              <View style={styles.toggleContainer}>
-                <Text style={styles.toggleQuestion}>
-                  {isSignUp ? '✅ Already have an account? ' : "📝 Don't have an account? "}
-                </Text>
-                <TouchableOpacity
-                  onPress={() => {
-                    setIsSignUp(!isSignUp);
-                    setError('');
-                    setEmail('');
-                    setUsername('');
-                    setPassword('');
-                    setConfirmPassword('');
-                    setShowPassword(false);
-                    setShowConfirmPassword(false);
-                  }}
-                >
-                  <Text style={styles.toggleLink}>
-                    {isSignUp ? 'Sign In' : 'Sign Up'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Sign Up Benefits */}
-              {isSignUp && (
-                <View style={styles.benefitsContainer}>
-                  <Text style={styles.benefitsTitle}>Why Create an Account?</Text>
-                  <View style={styles.benefitItem}>
-                    <Text style={styles.benefitIcon}>☁️</Text>
-                    <Text style={styles.benefitText}>Cloud Sync - Access your data anywhere</Text>
-                  </View>
-                  <View style={styles.benefitItem}>
-                    <Text style={styles.benefitIcon}>📊</Text>
-                    <Text style={styles.benefitText}>Track Progress - Weekly reports</Text>
-                  </View>
-                  <View style={styles.benefitItem}>
-                    <Text style={styles.benefitIcon}>🔄</Text>
-                    <Text style={styles.benefitText}>Multi-Device - Use on phone & web</Text>
-                  </View>
-                </View>
-              )}
-
-
-            </>
-          ) : (
-            /* Forgot Password Screen */
-            <>
-              <Text style={styles.loginTitle}>🔐 Reset Password</Text>
-              <Text style={styles.loginDescription}>
-                Enter your email address and we'll send you a link to reset your password.
-              </Text>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>📧 Email Address</Text>
-                <TextInput
-                  style={styles.loginInput}
-                  placeholder="your@email.com"
-                  placeholderTextColor="#A0AEC0"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  value={forgotEmail}
-                  onChangeText={setForgotEmail}
-                  editable={!loading}
-                />
-              </View>
-
-              {error && (
-                <View style={styles.loginErrorContainer}>
-                  <Text style={styles.loginErrorText}>{error}</Text>
-                </View>
-              )}
-
-              <TouchableOpacity
-                style={[styles.loginAuthButton, loading && styles.loginAuthButtonDisabled]}
-                onPress={onForgotPassword}
-                disabled={loading}
-              >
-                <Text style={styles.loginAuthButtonText}>
-                  {loading ? '⏳ Sending email...' : '📧 Send Reset Link'}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity onPress={() => { 
-                setIsForgotPassword(false); 
-                setError('');
-                setShowPassword(false);
-                setShowConfirmPassword(false);
-              }}>
-                <Text style={styles.backLink}>← Back to Login</Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
+              </>
+            )}
+            </View>
+          </CleanGlassCard>
+        </SimpleFloat>
 
         {/* Footer */}
         <View style={styles.loginFooter}>
@@ -2004,8 +2232,8 @@ function LoginScreen({
             By signing up, you agree to our Terms & Privacy Policy
           </Text>
         </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -2068,58 +2296,114 @@ const styles = StyleSheet.create({
   },
   // ========== NAVBAR STYLES ==========
   navbar: {
-    backgroundColor: 'rgba(10, 14, 26, 0.98)',
+    backgroundColor: 'rgba(10, 14, 26, 0.95)',
     borderBottomWidth: 2,
-    borderBottomColor: '#C0FF00',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
+    borderBottomColor: 'rgba(192, 255, 0, 0.3)',
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    backdropFilter: 'blur(20px)',
+    position: 'relative',
+    overflow: 'hidden',
     ...Platform.select({
       web: {
-        boxShadow: '0 4px 20px rgba(192, 255, 0, 0.15)',
+        boxShadow: '0 4px 24px rgba(192, 255, 0, 0.2), 0 0 40px rgba(192, 255, 0, 0.1)',
+        borderImage: 'linear-gradient(90deg, rgba(192, 255, 0, 0.3), rgba(124, 58, 237, 0.3), rgba(0, 212, 255, 0.3)) 1',
+        background: 'linear-gradient(135deg, rgba(10, 14, 26, 0.95) 0%, rgba(15, 20, 30, 0.95) 100%)',
       },
       native: {
         shadowColor: '#C0FF00',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 8,
-        elevation: 5,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.25,
+        shadowRadius: 12,
+        elevation: 8,
+      },
+    }),
+  },
+  navbarGlow: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(192, 255, 0, 0.02)',
+    ...Platform.select({
+      web: {
+        background: 'linear-gradient(45deg, rgba(192, 255, 0, 0.02) 0%, rgba(124, 58, 237, 0.02) 50%, rgba(0, 212, 255, 0.02) 100%)',
       },
     }),
   },
   navbarContent: {
     paddingHorizontal: 8,
     alignItems: 'center',
-    gap: 8,
+    gap: 12,
+    position: 'relative',
+    zIndex: 2,
   },
   navItem: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
     marginHorizontal: 4,
-    borderRadius: 12,
-    backgroundColor: 'rgba(42, 49, 66, 0.5)',
-    borderWidth: 1.5,
-    borderColor: '#2A3142',
-  },
-  navItemActive: {
-    backgroundColor: 'rgba(192, 255, 0, 0.15)',
-    borderColor: '#C0FF00',
+    borderRadius: 16,
+    backgroundColor: 'rgba(42, 49, 66, 0.6)',
+    borderWidth: 2,
+    borderColor: 'rgba(192, 255, 0, 0.1)',
+    minWidth: 100,
+    alignItems: 'center',
     ...Platform.select({
       web: {
-        boxShadow: '0 0 16px rgba(192, 255, 0, 0.4)',
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        cursor: 'pointer',
+        transform: 'translateY(0)',
+        backdropFilter: 'blur(10px)',
+      },
+      native: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+      },
+    }),
+  },
+  navItemActive: {
+    backgroundColor: 'rgba(192, 255, 0, 0.2)',
+    borderColor: '#C0FF00',
+    transform: [{ scale: 1.05 }],
+    ...Platform.select({
+      web: {
+        boxShadow: '0 0 24px rgba(192, 255, 0, 0.6), 0 4px 16px rgba(192, 255, 0, 0.3)',
+        transform: 'translateY(-2px) scale(1.05)',
       },
       native: {
         shadowColor: '#C0FF00',
-        shadowOpacity: 0.4,
-        shadowRadius: 6,
-        elevation: 4,
+        shadowOpacity: 0.6,
+        shadowRadius: 12,
+        elevation: 8,
       },
     }),
   },
   navItemText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: COLORS.text,
-    letterSpacing: 0.6,
+    fontSize: 14,
+    fontWeight: '800',
+    color: COLORS.textSecondary,
+    letterSpacing: 0.8,
+    textAlign: 'center',
+    ...Platform.select({
+      web: {
+        textShadow: '0 1px 2px rgba(0, 0, 0, 0.3)',
+      },
+    }),
+  },
+  navItemTextActive: {
+    color: '#C0FF00',
+    textShadowColor: '#C0FF00',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 8,
+    ...Platform.select({
+      web: {
+        textShadow: '0 0 12px rgba(192, 255, 0, 0.8), 0 1px 2px rgba(0, 0, 0, 0.5)',
+      },
+    }),
   },
   header: {
     marginBottom: 40,
@@ -3600,6 +3884,152 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: '600',
     fontStyle: 'italic',
+  },
+
+  // ========== ADVANCED ANIMATION STYLES ==========
+  loginScrollContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 40,
+  },
+  floatingOrb: {
+    position: 'absolute',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    opacity: 0.6,
+    ...Platform.select({
+      native: {
+        shadowColor: '#C0FF00',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.8,
+        shadowRadius: 20,
+        elevation: 10,
+      },
+      web: {
+        boxShadow: '0 0 40px rgba(192, 255, 0, 0.4), 0 0 80px rgba(192, 255, 0, 0.2)',
+        filter: 'blur(1px)',
+      },
+    }),
+  },
+  mainFloatingOrb: {
+    position: 'absolute',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    opacity: 0.4,
+    ...Platform.select({
+      native: {
+        shadowColor: '#C0FF00',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.6,
+        shadowRadius: 15,
+        elevation: 8,
+      },
+      web: {
+        boxShadow: '0 0 30px rgba(192, 255, 0, 0.3), 0 0 60px rgba(192, 255, 0, 0.15)',
+        filter: 'blur(0.5px)',
+      },
+    }),
+  },
+  simpleFloatingOrb: {
+    position: 'absolute',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    opacity: 0.3,
+    ...Platform.select({
+      native: {
+        shadowColor: '#C0FF00',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.4,
+        shadowRadius: 10,
+        elevation: 5,
+      },
+      web: {
+        boxShadow: '0 0 20px rgba(192, 255, 0, 0.2)',
+        filter: 'blur(0.3px)',
+      },
+    }),
+  },
+  particleContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    pointerEvents: 'none',
+  },
+  particle: {
+    position: 'absolute',
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    opacity: 0.6,
+    ...Platform.select({
+      native: {
+        shadowColor: '#C0FF00',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.8,
+        shadowRadius: 8,
+        elevation: 5,
+      },
+      web: {
+        boxShadow: '0 0 12px currentColor',
+      },
+    }),
+  },
+  enhancedButton: {
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Platform.select({
+      native: {
+        shadowColor: '#C0FF00',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.4,
+        shadowRadius: 16,
+        elevation: 12,
+      },
+      web: {
+        boxShadow: '0 8px 24px rgba(192, 255, 0, 0.3), 0 4px 12px rgba(192, 255, 0, 0.2)',
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        cursor: 'pointer',
+        transform: 'translateY(0)',
+      },
+    }),
+  },
+  enhancedButtonDisabled: {
+    opacity: 0.5,
+    ...Platform.select({
+      web: {
+        cursor: 'not-allowed',
+      },
+    }),
+  },
+
+  // ========== CLEAN DESIGN SYSTEM ==========
+  cleanGlassContainer: {
+    position: 'relative',
+    borderRadius: 24,
+    overflow: 'hidden',
+  },
+  glassLayer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 24,
+  },
+  glassContent: {
+    position: 'relative',
+    zIndex: 10,
+    padding: 20,
   },
 
   // Admin Setup Styles
